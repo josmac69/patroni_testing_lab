@@ -10,6 +10,16 @@ This repository contains a local testing lab for setting up a highly available P
 
 ---
 
+## Detailed Documentation
+
+To learn more about the configuration, topology, and management of the cluster, check out the following guides:
+
+*   **[Architecture Guide](docs/architecture.md)**: Visual and textual walkthrough of the high availability topology, network ports, failover dynamics, and split-brain prevention.
+*   **[Patroni Configuration & Operations Guide](docs/patroni.md)**: Comprehensive details on `patroni.yml` settings, REST API endpoints, and a cheatsheet for the `patronictl` administrative tool.
+*   **[HAProxy Load Balancing & Routing Guide](docs/haproxy.md)**: Breakdown of `haproxy.cfg`, dynamic health-checking mechanisms, active session termination (`on-marked-down`), and failover latency.
+
+---
+
 ## Makefile Helper Commands
 
 A `Makefile` is provided to simplify managing, testing, and inspecting the cluster. Run `make help` or use any of the following:
