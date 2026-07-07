@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.12
+    container_name: patroni-etcd
+    command: >
+      etcd --name etcd
+      --listen-client-urls http://0.0.0.0:2379
+      --advertise-client-urls http://etcd:2379
+      --listen-peer-urls http://0.0.0.0:2380
+      --initial-advertise-peer-urls http://etcd:2380
+      --initial-cluster etcd=http://etcd:2380
+      --initial-cluster-token etcd-cluster-token
+      --initial-cluster-state new
+    ports:
+      - "2379:2379"
+    networks:
+      - patroni-net
+
+  patroni1:
+    build: .
+    container_name: patroni1
+    hostname: patroni1
+    environment:
+      PATRONI_NAME: patroni1
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni1:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni1:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
+      PATRONI_ETCD3_HOSTS: etcd:2379
+    volumes:
+      - ./patroni.yml:/etc/patroni/patroni.yml:ro
+      - pgdata1:/data/patroni
+      - ./scripts:/scripts:ro
+    depends_on:
+      - etcd
+    networks:
+      - patroni-net
+
+  patroni2:
+    build: .
+    container_name: patroni2
+    hostname: patroni2
+    environment:
+      PATRONI_NAME: patroni2
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni2:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni2:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
+      PATRONI_ETCD3_HOSTS: etcd:2379
+    volumes:
+      - ./patroni.yml:/etc/patroni/patroni.yml:ro
+      - pgdata2:/data/patroni
+      - ./scripts:/scripts:ro
+    depends_on:
+      - etcd
+    networks:
+      - patroni-net
+
+  patroni3:
+    build: .
+    container_name: patroni3
+    hostname: patroni3
+    environment:
+      PATRONI_NAME: patroni3
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni3:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni3:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
+      PATRONI_ETCD3_HOSTS: etcd:2379
+    volumes:
+      - ./patroni.yml:/etc/patroni/patroni.yml:ro
+      - pgdata3:/data/patroni
+      - ./scripts:/scripts:ro
+    depends_on:
+      - etcd
+    networks:
+      - patroni-net
+
+  haproxy:
+    image: haproxy:alpine
+    container_name: patroni-haproxy
+    ports:
+      - "5000:5000" # Write endpoint
+      - "5001:5001" # Read-only endpoint
+      - "7000:7000" # Stats endpoint
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - patroni1
+      - patroni2
+      - patroni3
+    networks:
+      - patroni-net
+
+  client:
+    build: .
+    container_name: patroni-client
+    restart: always
+    volumes:
+      - ./scripts:/scripts:ro
+    entrypoint: ["python3", "-u", "/scripts/ingest.py"]
+    depends_on:
+      - haproxy
+    networks:
+      - patroni-net
+
+networks:
+  patroni-net:
+    driver: bridge
+
+volumes:
+  pgdata1:
+  pgdata2:
+  pgdata3:

@@ -1,0 +1,55 @@
+scope: patroni-cluster
+namespace: /service
+name: pg-node # Overridden by PATRONI_NAME
+
+etcd3:
+  hosts:
+    - etcd:2379
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: pg-node:8008 # Overridden by PATRONI_RESTAPI_CONNECT_ADDRESS
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        shared_buffers: 128MB
+        wal_level: replica
+        max_wal_senders: 10
+        max_replication_slots: 10
+        hot_standby: "on"
+        hot_standby_feedback: "on"
+        wal_keep_size: 1024MB
+        checkpoint_timeout: 30s
+        max_connections: 100
+
+  init:
+    pg_hba:
+      - host replication replicator 0.0.0.0/0 md5
+      - host all all 0.0.0.0/0 md5
+    
+  pg_hba:
+    - host replication replicator 0.0.0.0/0 md5
+    - host all all 0.0.0.0/0 md5
+    - local all all trust
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: pg-node:5432 # Overridden by PATRONI_POSTGRESQL_CONNECT_ADDRESS
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /etc/patroni/.pgpass
+  authentication:
+    replication:
+      username: replicator
+      password: repl_password
+    superuser:
+      username: postgres
+      password: postgres_password
