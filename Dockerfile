@@ -8,11 +8,31 @@ RUN apt-get update && apt-get install -y \
     curl \
     iputils-ping \
     jq \
+    dnsutils \
+    netcat-openbsd \
+    iproute2 \
+    procps \
+    less \
+    vim-tiny \
     && rm -rf /var/lib/apt/lists/*
+
+# Install etcdctl binary
+RUN curl -L https://github.com/etcd-io/etcd/releases/download/v3.5.12/etcd-v3.5.12-linux-amd64.tar.gz -o /tmp/etcd.tar.gz && \
+    tar -xzvf /tmp/etcd.tar.gz -C /tmp && \
+    mv /tmp/etcd-v3.5.12-linux-amd64/etcdctl /usr/local/bin/ && \
+    rm -rf /tmp/etcd*
 
 # Install Patroni and its dependencies globally
 # --break-system-packages is required for Debian Bookworm PEP 668 compliance
 RUN pip3 install --break-system-packages "patroni[etcd3]" psycopg2-binary
+
+# Create symlink for pctl to patronictl
+RUN ln -s /usr/local/bin/patronictl /usr/local/bin/pctl
+
+# Environment variables for ease of use
+ENV PATRONICTL_CONFIG_FILE=/etc/patroni/patroni.yml
+ENV ETCDCTL_ENDPOINTS=http://etcd:2379
+ENV ETCDCTL_API=3
 
 # Create directories for Patroni config and Postgres data
 RUN mkdir -p /etc/patroni /data/patroni && \
