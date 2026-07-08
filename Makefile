@@ -60,7 +60,7 @@ bootstrap:
 	./scripts/bootstrap.sh
 
 bash:
-	docker compose exec -it $(NODE) bash
+	docker compose exec -u root -it $(NODE) bash
 
 psql:
 	docker compose exec -it $(NODE) psql -U postgres
