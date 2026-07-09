@@ -11,16 +11,13 @@ Patroni is an HA orchestrator, not a backup tool. Replication protects
 against node loss, not against `DROP TABLE` — a bad statement replicates in
 milliseconds. This lab exists to make that distinction physical.
 
-## Architecture additions
+## Architecture (Pre-Configured Out-of-the-Box)
 
-* a shared named volume `backrest_repo` mounted at `/var/lib/pgbackrest`
-  on all three Patroni nodes (lab-grade substitute for a dedicated repo
-  host or S3; the conf is structured so switching `repo1-path` to
-  `repo1-s3-*` later is a one-block change);
-* `pgbackrest` installed in the Patroni image (add
-  `apt-get install -y pgbackrest` to the Dockerfile);
-* `archive_command`/`archive_mode` managed **through Patroni** — never in
-  `postgresql.conf` directly, since Patroni owns the configuration:
+The flagship `enhanced_3_nodes` stack comes pre-configured with pgBackRest:
+* A shared named volume `backrest_repo` is already declared and mounted at `/var/lib/pgbackrest` on all three Patroni nodes.
+* `pgbackrest` is pre-installed in the Patroni Docker image.
+* `/etc/pgbackrest.conf` is pre-configured and mounted into the containers from the host.
+* `archive_command`/`archive_mode` are managed **through Patroni** — never in `postgresql.conf` directly. To enable archiving, run:
 
       make -C ../enhanced_3_nodes profile-async   # any profile
       docker compose exec patroni1 patronictl -c /tmp/patroni.yml edit-config --force \

@@ -7,6 +7,7 @@
 #     /usr/lib/postgresql/{$OLD,$NEW}/bin  (PGDG packages)
 #   * a fresh pgBackRest full backup (your rollback plan)
 set -euo pipefail
+cd "$(dirname "$0")/../enhanced_3_nodes"
 
 OLD=${OLD:?set OLD, e.g. OLD=17}
 NEW=${NEW:?set NEW, e.g. NEW=18}
@@ -45,8 +46,7 @@ echo "== swapping data directories =="
 run "mv $DATA_OLD ${DATA_OLD}_${OLD}_retired && mv $DATA_NEW $DATA_OLD"
 
 echo "== wiping DCS state for scope '$SCOPE' (new system identifier) =="
-run "patronictl -c /tmp/patroni.yml remove $SCOPE" || \
-  echo "confirm interactively: patronictl remove requires typed confirmation"
+run "echo $SCOPE | patronictl -c /tmp/patroni.yml remove $SCOPE"
 
 echo "== restart Patroni container; it re-bootstraps the scope on PG $NEW =="
 docker compose restart "$LEADER"

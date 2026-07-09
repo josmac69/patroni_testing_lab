@@ -8,7 +8,7 @@ name: patroni-lab-ci
 
 on:
   push:
-    paths: ["enhanced_3_nodes/**", ".github/workflows/lab-ci.yml"]
+    paths: ["patroni_lab_enhancements/enhanced_3_nodes/**", ".github/workflows/lab-ci.yml"]
   workflow_dispatch:
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 25
     defaults:
       run:
-        working-directory: enhanced_3_nodes
+        working-directory: patroni_lab_enhancements/enhanced_3_nodes
     steps:
       - uses: actions/checkout@v4
 
@@ -37,13 +37,12 @@ jobs:
 
       - name: Switchover with zero acknowledged-commit loss (RPO gate)
         run: |
-          docker compose exec -T -d client \
-            python rpo_rto_harness.py --duration 60 > /tmp/harness.pid
+          docker compose exec -T client python rpo_rto_harness.py --duration 60 > /tmp/harness.log &
+          HARNESS_PID=$!
           sleep 10
           ./scripts/scenario_switchover.sh
-          sleep 60
-          # harness exit code 1 on any lost acknowledged commit
-          docker compose logs client | tail -30
+          wait $HARNESS_PID
+          cat /tmp/harness.log
 
       - name: Teardown
         if: always()

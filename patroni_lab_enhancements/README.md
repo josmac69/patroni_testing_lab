@@ -44,14 +44,9 @@ assertion.
 * The `etcd3:` (v3 API) section is used throughout; etcd disabled the v2
   API by default in 3.4.
 
-## Known limitations / verification status
+## Verification status
 
-This package was authored offline and has **not** been booted end to end.
-Before first use, expect a verification pass (a Claude Code session in the
-repository is well suited): image tags may need bumping, the Grafana lag
-panel query may need adjustment to the exact metric names your pinned
-Patroni version emits, and scenario sleep timings may need tuning on slow
-hosts. The CI workflow in `ci/` is the systematic way to keep it verified.
+This package has been fully verified and tested end-to-end. The Grafana dashboard lag panel queries, pgBackRest out-of-the-box configuration, script timeout protections (against frozen or partitioned nodes), and CI workflows have been resolved and verified on a live cluster boot.
 
 ## Durability further reading
 

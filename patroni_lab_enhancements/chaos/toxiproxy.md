@@ -29,7 +29,7 @@ and create the proxy after startup:
 
     # 2.5s latency on patroni2 -> etcd1 (probe the failsafe 2s timeout edge)
     curl -s -X POST localhost:8474/proxies/etcd1/toxics -d '{
-      "type": "latency", "attributes": {"latency": 2500}}'
+      "name": "latency_downstream", "type": "latency", "attributes": {"latency": 2500}}'
 
     # hard cut of just this path (asymmetric partition)
     curl -s -X POST localhost:8474/proxies/etcd1/toxics -d '{

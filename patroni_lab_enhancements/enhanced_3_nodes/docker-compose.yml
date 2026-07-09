@@ -62,7 +62,10 @@ services:
     environment:
       <<: *patroni-env
       PATRONI_NAME: patroni1
-    volumes: ["pgdata1:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata1:/var/lib/postgresql/data
+      - backrest_repo:/var/lib/pgbackrest
+      - ../backup_pgbackrest/pgbackrest.conf:/etc/pgbackrest.conf:ro
   patroni2:
     <<: *patroni-common
     hostname: patroni2
@@ -70,7 +73,10 @@ services:
     environment:
       <<: *patroni-env
       PATRONI_NAME: patroni2
-    volumes: ["pgdata2:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata2:/var/lib/postgresql/data
+      - backrest_repo:/var/lib/pgbackrest
+      - ../backup_pgbackrest/pgbackrest.conf:/etc/pgbackrest.conf:ro
   patroni3:
     <<: *patroni-common
     hostname: patroni3
@@ -78,7 +84,10 @@ services:
     environment:
       <<: *patroni-env
       PATRONI_NAME: patroni3
-    volumes: ["pgdata3:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata3:/var/lib/postgresql/data
+      - backrest_repo:/var/lib/pgbackrest
+      - ../backup_pgbackrest/pgbackrest.conf:/etc/pgbackrest.conf:ro
 
   haproxy:
     image: haproxy:${HAPROXY_TAG}
@@ -161,3 +170,4 @@ volumes:
   pgdata1:
   pgdata2:
   pgdata3:
+  backrest_repo:

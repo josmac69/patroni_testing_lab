@@ -5,7 +5,7 @@ ARG PATRONI_VERSION=4.1.4
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      python3 python3-pip python3-venv curl jq less procps iputils-ping \
+      python3 python3-pip python3-venv curl jq less procps iputils-ping pgbackrest \
  && rm -rf /var/lib/apt/lists/*
 
 # Isolated venv keeps pip away from Debian's externally managed environment.
