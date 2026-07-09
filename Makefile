@@ -3,6 +3,7 @@
 	recover-node recover-dcs recover-network-partition resume-cluster reinit-replica
 
 NODE ?= patroni1
+NUM ?= 1
 
 help:
 	@echo "Patroni HA Testing Lab Commands:"
@@ -17,7 +18,7 @@ help:
 	@echo "  make ingest-docker               - Run ingestion client interactively in a temp Docker container"
 	@echo "  make ingest-local                - Run ingestion client locally on the host (sets up venv)"
 	@echo "  make failover                    - Run manual patronictl failover wizard"
-	@echo "  make write-test                  - Run test SQL insert via HAProxy write port 5000"
+	@echo "  make write-test [NUM=N]          - Run test SQL insert via HAProxy write port 5000 (default: NUM=1)"
 	@echo "  make read-test                   - Run test SQL select via HAProxy read port 5001"
 	@echo "  make bash                        - Open bash shell inside selected node (default: NODE=patroni1)"
 	@echo "  make psql                        - Open psql shell inside selected node (default: NODE=patroni1)"
@@ -73,7 +74,7 @@ failover:
 write-test:
 	@RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'patroni[1-3]' | head -n 1); \
 	if [ -n "$$RUNNING" ]; then \
-		docker compose exec $$RUNNING bash -c "PGPASSWORD=postgres_password psql -h patroni-haproxy -p 5000 -U postgres -d postgres -c \"INSERT INTO sensor_readings (sensor_name, reading_value) VALUES ('manual_test_sensor', 42.0);\""; \
+		docker compose exec $$RUNNING bash -c "PGPASSWORD=postgres_password psql -h patroni-haproxy -p 5000 -U postgres -d postgres -c \"INSERT INTO sensor_readings (sensor_name, reading_value) SELECT 'manual_test_sensor', 42.0 FROM generate_series(1, $(NUM));\""; \
 	else \
 		echo "No running Patroni nodes found to run write-test."; \
 	fi

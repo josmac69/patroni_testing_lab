@@ -33,7 +33,7 @@ A `Makefile` is provided to simplify managing, testing, and inspecting the clust
 *   **`make ps`**: Show the docker container statuses.
 *   **`make logs`**: Stream the logs of all containers.
 *   **`make failover`**: Run the manual Patroni failover wizard.
-*   **`make write-test`**: Run a test INSERT statement via the HAProxy write-only port `5000`.
+*   **`make write-test [NUM=N]`**: Run a test INSERT statement via the HAProxy write-only port `5000` (default: `NUM=1`).
 *   **`make read-test`**: Run a test SELECT statement via the HAProxy read-only port `5001`.
 *   **`make bash`**: Open a root bash shell inside the selected container (default: `NODE=patroni1`).
 *   **`make psql`**: Open a `psql` shell inside the selected container (default: `NODE=patroni1`).
@@ -97,17 +97,24 @@ You can also view HAProxy statistics in your browser at `http://localhost:7000`.
 
 ### 1. Test Write Routing (Port 5000)
 
-HAProxy routes write traffic on port `5000` to the current leader (`patroni1` initially). You can run a test write using the Makefile:
+HAProxy routes write traffic on port `5000` to the current leader (`patroni1` initially). You can run a test write using the Makefile to insert a specified number of mock sensor records:
 
 ```bash
+# Insert 1 record (default)
 make write-test
+
+# Insert 1,000 records
+make write-test NUM=1000
 ```
 
-Or run it manually:
-```bash
-psql -h localhost -p 5000 -U postgres -d postgres -c \
-  "INSERT INTO sensor_readings (sensor_name, reading_value) VALUES ('manual_test_sensor', 42.0);"
-```
+#### Behind the Scenes:
+- **Client Connection**: The command targets HAProxy on port `5000` (the write-only proxy pool). HAProxy performs HTTP health checks against the Patroni REST API endpoints (`GET /primary` or `/leader`). Only the node holding the leader lock responds with HTTP status `200`, so all write traffic is routed exclusively to the active primary.
+- **SQL Execution**: The Makefile leverages PostgreSQL's `generate_series(1, NUM)` function to insert `NUM` rows inside a single query:
+  ```sql
+  INSERT INTO sensor_readings (sensor_name, reading_value)
+  SELECT 'manual_test_sensor', 42.0 FROM generate_series(1, NUM);
+  ```
+- **Replication**: Once committed on the leader, these records are streamed via PostgreSQL physical replication to all connected standby replicas.
 
 ### 2. Test Read-Only Routing (Port 5001)
 
@@ -199,6 +206,13 @@ make recover-node NODE=patroni1
 ```
 Monitor the status; the node will rejoin as a `Replica`, clone/sync metadata, and catch up with replication.
 
+#### Behind the Scenes:
+- **Leader Detection**: When you run `make simulate-leader-failure`, the Makefile queries `patronictl list` inside a running node to find the active leader container name, then calls `docker compose stop <container>`.
+- **Lease Expiration**: Replicas lose heartbeat connection with the primary, but they do not promote immediately. They wait for the leader lease in the DCS (`ttl` = 30s) to expire.
+- **Failover Election**: Once the TTL expires, the replicas compare their replication positions (LSN) with the DCS metadata. The most up-to-date replica (highest LSN) successfully claims the leader lock in `etcd`, promotes its local PostgreSQL cluster to primary, increments the timeline (e.g., TL 1 ➔ TL 2), and begins accepting writes.
+- **HAProxy Routing**: HAProxy detects the change via its continuous HTTP checks (the old leader returns nothing/offline; the new leader now returns `200 OK` on `/primary`). HAProxy dynamically closes active connections to the old leader and routes new write connections to the promoted node.
+- **Rejoin & pg_rewind**: When you run `make recover-node NODE=<node>`, the container starts. Patroni detects that a new leader exists on a higher timeline. It uses `pg_rewind` to roll back any un-replicated transactions on the old leader's data directory to match the new leader's timeline history, then hooks back in as a replica.
+
 ---
 
 ### Scenario 2: DCS Quorum Loss (Read-Only Safety Fencing)
@@ -235,6 +249,12 @@ make recover-dcs
 ```
 Once etcd is online, Patroni nodes will automatically re-acquire lease states and election rules, electing a new leader and returning the cluster to service.
 
+#### Behind the Scenes:
+- **Consensus Loss**: Stopping `patroni-etcd` cuts off the DCS. Within the `loop_wait` time (10s), Patroni nodes realize they cannot contact the DCS.
+- **Self-Demotion (Fencing)**: Since the primary cannot refresh its lease in `etcd`, it must demote itself to replica (making PostgreSQL read-only) before the lease TTL expires (30s) to guarantee that no split-brain writes occur.
+- **HAProxy Status**: HAProxy's HTTP checks fail to get a valid response from the primary check (`/primary` returns `503` or timeout), so HAProxy marks the backend pool as down and rejects all client writes on port `5000`.
+- **DCS Recovery**: Restoring the etcd container recovers the DCS. The nodes re-establish connection, discover the cluster state, and elect a primary. Replicas reconnect to resume streaming.
+
 ---
 
 ### Scenario 3: Leader Network Partition (Demotion & Fencing)
@@ -267,6 +287,12 @@ make recover-network-partition
 ```
 The partitioned node will be reconnected to the network, discover that another node has assumed leadership, demote its local PostgreSQL timeline, and automatically catch up with the new leader.
 
+#### Behind the Scenes:
+- **Isolation**: When `make simulate-network-partition` is executed, the script identifies the current leader, finds the Compose bridge network name, and issues `docker network disconnect <network> <leader_container>`.
+- **Fencing**: The isolated leader cannot contact the DCS (`etcd`) nor the replicas. It demotes itself locally to replica within the timeout window to prevent split-brain writes.
+- **Split-Brain Mitigation**: Meanwhile, the healthy side of the partition (the replicas and `etcd`) can still talk to each other. Once the old leader's lease TTL expires, the remaining nodes hold an election and promote one of themselves to be the new leader.
+- **Timeline Divergence Recovery**: When the partition is healed via `make recover-network-partition`, the old leader is reconnected. It attempts to contact the DCS, sees a new leader on a higher timeline, and halts Postgres. It then runs `pg_rewind` against the new leader to align its WAL history before starting as a streaming replica.
+
 ---
 
 ### Scenario 4: Cluster Pausing (Maintenance Mode)
@@ -297,6 +323,10 @@ Resume Patroni supervision:
 ```bash
 make resume-cluster
 ```
+
+#### Behind the Scenes:
+- **Paused State**: Pausing the cluster writes a `pause` key in the DCS. Patroni supervision is deactivated on all nodes.
+- **No Promotion**: If a node crashes while paused, no failover takes place because Patroni will not attempt to acquire leadership or promote a replica. This is vital when performing manual maintenance, upgrades, or major database schema changes where automated HA orchestrations could disrupt the task.
 
 ---
 
