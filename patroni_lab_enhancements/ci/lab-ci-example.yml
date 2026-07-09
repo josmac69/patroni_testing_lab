@@ -1,0 +1,50 @@
+# Example GitHub Actions workflow: the lab tests itself.
+# Copy to .github/workflows/lab-ci.yml in the repository root to activate.
+#
+# What it proves on every push: the stack boots, converges, survives a hard
+# leader kill, and a clean switchover loses no acknowledged commit (harness
+# exits non-zero on any RPO violation).
+name: patroni-lab-ci
+
+on:
+  push:
+    paths: ["enhanced_3_nodes/**", ".github/workflows/lab-ci.yml"]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: enhanced_3_nodes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Boot the stack and wait for convergence
+        run: make up
+
+      - name: Cluster has exactly one leader and three members
+        run: |
+          docker compose exec -T patroni1 patronictl -c /tmp/patroni.yml list
+          leaders=$(docker compose exec -T patroni1 \
+            patronictl -c /tmp/patroni.yml list -f json \
+            | jq '[.[] | select(.Role=="Leader")] | length')
+          test "$leaders" -eq 1
+
+      - name: Automatic failover after hard leader kill
+        run: ./scripts/scenario_failover.sh
+
+      - name: Switchover with zero acknowledged-commit loss (RPO gate)
+        run: |
+          docker compose exec -T -d client \
+            python rpo_rto_harness.py --duration 60 > /tmp/harness.pid
+          sleep 10
+          ./scripts/scenario_switchover.sh
+          sleep 60
+          # harness exit code 1 on any lost acknowledged commit
+          docker compose logs client | tail -30
+
+      - name: Teardown
+        if: always()
+        run: make clean

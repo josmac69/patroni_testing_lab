@@ -1,0 +1,94 @@
+# ===========================================================================
+# Patroni configuration template. __NODE_NAME__ and __SCOPE__ are substituted
+# by entrypoint.sh at container start.
+#
+# IMPORTANT for teaching: everything under bootstrap.dcs is written to the
+# DCS ONLY when the cluster is bootstrapped for the first time. Afterwards
+# the authoritative copy lives in etcd and is changed with
+# `patronictl edit-config`. The Makefile targets profile-async /
+# profile-quorum / profile-strict do exactly that.
+# ===========================================================================
+
+scope: __SCOPE__
+name: __NODE_NAME__
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: __NODE_NAME__:8008
+
+# etcd v3 API. The v2 API is disabled by default since etcd 3.4, so labs
+# still using the `etcd:` section silently depend on legacy server flags.
+etcd3:
+  hosts: etcd1:2379,etcd2:2379,etcd3:2379
+
+bootstrap:
+  dcs:
+    # --- default profile: "textbook async" --------------------------------
+    # Worst-case failover time for a primary crash is roughly
+    #   ttl + loop_wait + retry_timeout  (leader key expiry + race)
+    # See docs/02_replication_profiles.md for the aggressive and WAN
+    # profiles and the measured differences.
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+
+    # DCS failsafe (Patroni >= 3.0). Deliberately OFF by default so the lab
+    # first demonstrates the classic behaviour: losing etcd quorum demotes
+    # the primary to read-only. Scenario 03 then enables it at runtime.
+    failsafe_mode: false
+
+    # Synchronous replication is OFF in the default profile; the quorum and
+    # strict profiles are applied via patronictl (see Makefile).
+    synchronous_mode: false
+
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        max_connections: 100
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_level: replica
+        hot_standby: "on"
+        wal_log_hints: "on"        # required by pg_rewind without checksums
+        wal_keep_size: 128MB
+        track_commit_timestamp: "on"
+        # Uncomment to observe WAL retention pressure in the disk-full
+        # scenario: shrink pg_wal on a small volume and watch slots pin WAL.
+        # max_slot_wal_keep_size: 256MB
+
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+
+  pg_hba:
+    - host replication replicator 0.0.0.0/0 md5
+    - host all all 0.0.0.0/0 md5
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: __NODE_NAME__:5432
+  data_dir: /var/lib/postgresql/data/pgdata
+  pgpass: /tmp/pgpass
+  authentication:
+    replication:
+      username: replicator
+      password: replpass
+    superuser:
+      username: postgres
+      password: postgres
+
+# Watchdog is off by default because it needs /dev/watchdog mapped into the
+# container and softdog loaded on the host. docs/05_watchdog.md explains the
+# full setup including safety_margin arithmetic.
+watchdog:
+  mode: off          # off | automatic | required
+  device: /dev/watchdog
+  safety_margin: 5
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

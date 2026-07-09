@@ -1,0 +1,22 @@
+# Merge these keys into patroni.yml.tmpl of the enhanced lab.
+
+# 1) replica creation preference: repository first, primary as fallback
+postgresql:
+  create_replica_methods:
+    - pgbackrest
+    - basebackup
+  pgbackrest:
+    command: /usr/bin/pgbackrest --stanza=lab --delta restore
+    keep_data: true
+    no_params: true
+  basebackup:
+    checkpoint: fast
+
+# 2) whole-cluster bootstrap from backup (disaster-recovery cold start).
+#    Activate by replacing bootstrap.initdb with:
+# bootstrap:
+#   method: pgbackrest_restore
+#   pgbackrest_restore:
+#     command: /usr/bin/pgbackrest --stanza=lab restore
+#     keep_existing_recovery_conf: true
+#     no_params: true

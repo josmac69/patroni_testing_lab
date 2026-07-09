@@ -1,0 +1,163 @@
+# ===========================================================================
+# Enhanced 3-node Patroni lab
+#
+#   3x Patroni/PostgreSQL   patroni1..patroni3   (REST API :8008)
+#   3x etcd (real quorum)   etcd1..etcd3         (client :2379)
+#   1x HAProxy              write :5000 / read :5001 / stats :7000 / metrics :8404
+#   1x Prometheus           :9090
+#   1x Grafana              :3000  (admin/admin)
+#   3x postgres_exporter    sidecars, one per PostgreSQL node
+#   1x ingestion client     continuous mock sensor writes through HAProxy
+#
+# The etcd cluster is a genuine 3-node quorum so that DCS failure scenarios
+# distinguish "lost one member" (cluster survives) from "lost quorum"
+# (primary is demoted to read-only, unless failsafe_mode is enabled).
+# ===========================================================================
+
+x-etcd-common: &etcd-common
+  image: quay.io/coreos/etcd:${ETCD_TAG}
+  networks: [labnet]
+  environment: &etcd-env
+    ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+    ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+    ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+    ETCD_INITIAL_CLUSTER_STATE: new
+    ETCD_INITIAL_CLUSTER_TOKEN: patroni-lab
+    ETCD_AUTO_COMPACTION_RETENTION: "1"
+
+x-patroni-common: &patroni-common
+  build:
+    context: ./patroni
+    args:
+      PG_MAJOR: ${PG_MAJOR}
+      PATRONI_VERSION: ${PATRONI_VERSION}
+  networks: [labnet]
+  environment: &patroni-env
+    PATRONI_SCOPE: ${CLUSTER_SCOPE}
+    PATRONI_ETCD3_HOSTS: "etcd1:2379,etcd2:2379,etcd3:2379"
+  depends_on: [etcd1, etcd2, etcd3]
+  # Uncomment for the watchdog scenario (see docs/05_watchdog.md);
+  # requires `modprobe softdog soft_noboot=1` on the Docker host.
+  # devices:
+  #   - /dev/watchdog:/dev/watchdog
+
+services:
+  etcd1:
+    <<: *etcd-common
+    hostname: etcd1
+    command: etcd --name etcd1 --initial-advertise-peer-urls http://etcd1:2380 --advertise-client-urls http://etcd1:2379
+  etcd2:
+    <<: *etcd-common
+    hostname: etcd2
+    command: etcd --name etcd2 --initial-advertise-peer-urls http://etcd2:2380 --advertise-client-urls http://etcd2:2379
+  etcd3:
+    <<: *etcd-common
+    hostname: etcd3
+    command: etcd --name etcd3 --initial-advertise-peer-urls http://etcd3:2380 --advertise-client-urls http://etcd3:2379
+
+  patroni1:
+    <<: *patroni-common
+    hostname: patroni1
+    container_name: patroni1
+    environment:
+      <<: *patroni-env
+      PATRONI_NAME: patroni1
+    volumes: ["pgdata1:/var/lib/postgresql/data"]
+  patroni2:
+    <<: *patroni-common
+    hostname: patroni2
+    container_name: patroni2
+    environment:
+      <<: *patroni-env
+      PATRONI_NAME: patroni2
+    volumes: ["pgdata2:/var/lib/postgresql/data"]
+  patroni3:
+    <<: *patroni-common
+    hostname: patroni3
+    container_name: patroni3
+    environment:
+      <<: *patroni-env
+      PATRONI_NAME: patroni3
+    volumes: ["pgdata3:/var/lib/postgresql/data"]
+
+  haproxy:
+    image: haproxy:${HAPROXY_TAG}
+    hostname: haproxy
+    container_name: haproxy
+    networks: [labnet]
+    ports:
+      - "5000:5000"   # writes -> current primary
+      - "5001:5001"   # reads  -> replicas, round-robin
+      - "7000:7000"   # stats UI
+      - "8404:8404"   # native Prometheus exporter
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on: [patroni1, patroni2, patroni3]
+
+  # --- observability -------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_TAG}
+    container_name: prometheus
+    networks: [labnet]
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_TAG}
+    container_name: grafana
+    networks: [labnet]
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus]
+
+  pgexporter1:
+    image: prometheuscommunity/postgres-exporter:${POSTGRES_EXPORTER_TAG}
+    container_name: pgexporter1
+    networks: [labnet]
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@patroni1:5432/postgres?sslmode=disable"
+    depends_on: [patroni1]
+  pgexporter2:
+    image: prometheuscommunity/postgres-exporter:${POSTGRES_EXPORTER_TAG}
+    container_name: pgexporter2
+    networks: [labnet]
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@patroni2:5432/postgres?sslmode=disable"
+    depends_on: [patroni2]
+  pgexporter3:
+    image: prometheuscommunity/postgres-exporter:${POSTGRES_EXPORTER_TAG}
+    container_name: pgexporter3
+    networks: [labnet]
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@patroni3:5432/postgres?sslmode=disable"
+    depends_on: [patroni3]
+
+  # --- workload ------------------------------------------------------------
+  client:
+    build: ./client
+    container_name: client
+    networks: [labnet]
+    environment:
+      PGHOST: haproxy
+      PGPORT: "5000"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    depends_on: [haproxy]
+    restart: unless-stopped
+
+networks:
+  labnet:
+    name: patroni_labnet
+
+volumes:
+  pgdata1:
+  pgdata2:
+  pgdata3:

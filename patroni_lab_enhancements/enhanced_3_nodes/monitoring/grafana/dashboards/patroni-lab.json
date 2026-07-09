@@ -1,0 +1,62 @@
+{
+  "title": "Patroni Lab Overview",
+  "uid": "patroni-lab",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Primary per node (1 = leader)",
+      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "patroni_primary", "legendFormat": "{{instance}}" }],
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [
+        { "color": "text", "value": null }, { "color": "green", "value": 1 } ] } } }
+    },
+    {
+      "id": 2, "type": "stat", "title": "PostgreSQL running",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "patroni_postgres_running", "legendFormat": "{{instance}}" }],
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [
+        { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } } }
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Leader over time (watch failovers)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [{ "expr": "patroni_primary", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Cluster timeline (bumps on every promotion)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [{ "expr": "patroni_postgres_timeline", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Replica replay lag vs leader (bytes)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "targets": [{
+        "expr": "max(patroni_xlog_location) - on() group_right() patroni_xlog_replayed_location",
+        "legendFormat": "{{instance}}"
+      }]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Commit rate (xact_commit/s, via postgres_exporter)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "targets": [{
+        "expr": "sum by (instance) (rate(pg_stat_database_xact_commit[30s]))",
+        "legendFormat": "{{instance}}"
+      }]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "etcd: has leader (quorum health)",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 21 },
+      "targets": [{ "expr": "etcd_server_has_leader", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "HAProxy backend status (primary listener)",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 21 },
+      "targets": [{
+        "expr": "haproxy_server_status{proxy=\"primary\"}",
+        "legendFormat": "{{server}}"
+      }]
+    }
+  ]
+}
