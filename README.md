@@ -24,15 +24,36 @@ To learn more about the configuration, topology, and management of the cluster, 
 
 A `Makefile` is provided to simplify managing, testing, and inspecting the cluster. Run `make help` or use any of the following:
 
+### Core Lab Commands
 *   **`make up`**: Build the custom images and start the cluster in the background.
 *   **`make down`**: Stop the running cluster containers.
 *   **`make clean`**: Stop the cluster and destroy the named PostgreSQL volumes (resets all data!).
-*   **`make status`**: Show the active Patroni cluster membership, role, lag, and timeline details.
+*   **`make bootstrap`**: Run the realistic sequential cluster bootstrap process.
+*   **`make status`**: Display the active Patroni cluster membership, role, lag, and timeline details.
 *   **`make ps`**: Show the docker container statuses.
 *   **`make logs`**: Stream the logs of all containers.
 *   **`make failover`**: Run the manual Patroni failover wizard.
 *   **`make write-test`**: Run a test INSERT statement via the HAProxy write-only port `5000`.
 *   **`make read-test`**: Run a test SELECT statement via the HAProxy read-only port `5001`.
+*   **`make bash`**: Open a root bash shell inside the selected container (default: `NODE=patroni1`).
+*   **`make psql`**: Open a `psql` shell inside the selected container (default: `NODE=patroni1`).
+
+### Triage & Diagnosis Commands
+*   **`make triage`**: Run the deep triage and audit script (`scripts/patroni_deep_triage.sh`) to detect health anomalies, configuration errors, and print remediation suggestions.
+*   **`make dcs-dump`**: Dump all keys and metadata currently held in `etcd` (the DCS store) under the `/service/patroni-cluster` namespace.
+
+### Simulation & Failure Commands
+*   **`make simulate-leader-failure`**: Detects which Patroni container is the current leader and stops it (`docker compose stop`), simulating a hard crash.
+*   **`make simulate-dcs-failure`**: Stops the `etcd` container to simulate DCS quorum loss.
+*   **`make simulate-network-partition`**: Disconnects the current leader node from the Docker bridge network to simulate a network split.
+*   **`make pause-cluster`**: Pauses Patroni auto-failover/supervision (maintenance mode).
+
+### Recovery & Repair Commands
+*   **`make recover-node NODE=<node>`**: Restarts a stopped Patroni node container (e.g. `NODE=patroni1`).
+*   **`make recover-dcs`**: Restarts the `etcd` container and blocks until it reports healthy.
+*   **`make recover-network-partition`**: Reconnects all cluster nodes back to the network, healing any active network splits.
+*   **`make resume-cluster`**: Resumes cluster supervision.
+*   **`make reinit-replica NODE=<node>`**: Forces a full re-clone and sync of a replica from the current leader.
 
 ---
 
@@ -76,32 +97,36 @@ You can also view HAProxy statistics in your browser at `http://localhost:7000`.
 
 ### 1. Test Write Routing (Port 5000)
 
-HAProxy routes write traffic on port `5000` to the current leader (`patroni1` initially). Connect and create a table:
+HAProxy routes write traffic on port `5000` to the current leader (`patroni1` initially). You can run a test write using the Makefile:
 
 ```bash
-psql -h localhost -p 5000 -U postgres -d postgres -c \
-  "CREATE TABLE test_ha (id serial primary key, val text, created_at timestamp default now());"
+make write-test
 ```
 
-Insert a row:
+Or run it manually:
 ```bash
 psql -h localhost -p 5000 -U postgres -d postgres -c \
-  "INSERT INTO test_ha (val) VALUES ('Hello from Primary!');"
+  "INSERT INTO sensor_readings (sensor_name, reading_value) VALUES ('manual_test_sensor', 42.0);"
 ```
 
 ### 2. Test Read-Only Routing (Port 5001)
 
-HAProxy routes read traffic on port `5001` to the replicas (`patroni2` and `patroni3` in round-robin):
+HAProxy routes read traffic on port `5001` to the replicas (`patroni2` and `patroni3` in round-robin). Run the test read:
 
 ```bash
+make read-test
+```
+
+Or run it manually:
+```bash
 psql -h localhost -p 5001 -U postgres -d postgres -c \
-  "SELECT * FROM test_ha;"
+  "SELECT * FROM sensor_readings ORDER BY id DESC LIMIT 5;"
 ```
 
 If you try to write on port `5001`, you should get a read-only transaction error:
 ```bash
 psql -h localhost -p 5001 -U postgres -d postgres -c \
-  "INSERT INTO test_ha (val) VALUES ('This should fail');"
+  "INSERT INTO sensor_readings (sensor_name, reading_value) VALUES ('fail_sensor', 0.0);"
 # ERROR: cannot execute INSERT in a read-only transaction
 ```
 
@@ -114,7 +139,7 @@ To make HA testing realistic, we have included an automated ingestion client (`s
 A helper bash script is provided to run this client in different ways:
 
 ### Running via Docker (Default)
-By default, the ingestion client starts automatically in the background when you run `make up`. You can watch its continuous output using:
+By default, the ingestion client starts automatically in the background when you run `make up` or `make bootstrap`. You can watch its continuous output using:
 ```bash
 make client-logs
 ```
@@ -139,38 +164,139 @@ DB_PORT=5000 DB_USER=postgres ./scripts/run_ingestion.sh local
 
 ---
 
-## Simulating Failover
+## Failures Simulation & Triage Walkthrough
 
-To test automatic failover, terminate the leader node:
+This section describes how to simulate common cluster failures, diagnose them using `make triage` and `make status`, and perform the recovery.
 
+### Scenario 1: Leader Node Crash (Automatic Failover)
+
+**1. Simulation**
+Simulate a hard crash of the current leader node (e.g. `patroni1`):
 ```bash
-docker compose stop patroni1
+make simulate-leader-failure
 ```
 
-Now, monitor the cluster status from another node (e.g. `patroni2`):
+**2. Diagnosis**
+- Check the cluster membership status:
+  ```bash
+  make status
+  ```
+  You will see that the stopped node is marked as `offline` or `stopped`, and one of the replicas has been promoted to `Leader` (e.g., `patroni2` or `patroni3`).
+- Run the deep triage tool:
+  ```bash
+  make triage
+  ```
+  The triage report will flag that the container is stopped and will show the log forensics highlighting the recent promotion of the replica.
+- Verify that write connections on port `5000` still work (they automatically route to the new leader via HAProxy):
+  ```bash
+  make write-test
+  ```
+
+**3. Repair**
+Bring the stopped node back online to rejoin the cluster:
 ```bash
-docker compose exec patroni2 patronictl -c /etc/patroni/patroni.yml list
+make recover-node NODE=patroni1
+```
+Monitor the status; the node will rejoin as a `Replica`, clone/sync metadata, and catch up with replication.
+
+---
+
+### Scenario 2: DCS Quorum Loss (Read-Only Safety Fencing)
+
+Without a healthy consensus store (DCS), Patroni cannot guarantee which node should be the leader and will demote the active leader to prevent split-brain writes.
+
+**1. Simulation**
+Stop the `etcd` consensus container:
+```bash
+make simulate-dcs-failure
 ```
 
-Observe that:
-1.  One of the replicas (`patroni2` or `patroni3`) is automatically promoted to `Leader`.
-2.  The remaining replica points replication to the new leader.
-3.  Write connections on port `5000` automatically failover to the new leader (after HAProxy health checks update, which takes ~3 seconds).
+**2. Diagnosis**
+- Check the cluster status:
+  ```bash
+  make status
+  ```
+  This will fail with an error because the DCS is unreachable.
+- Run the deep triage tool:
+  ```bash
+  make triage
+  ```
+  The triage script will flag the etcd endpoints as `CLOSED` and warning about the unreachable DCS.
+- Verify write routing:
+  ```bash
+  make write-test
+  ```
+  This will fail. Because etcd is down, Patroni demotes the leader, making all PostgreSQL nodes read-only (or shut down entirely depending on configuration).
 
-Verify you can still insert rows through HAProxy on port `5000`:
+**3. Repair**
+Restart the etcd container and wait for it to be healthy:
 ```bash
-psql -h localhost -p 5000 -U postgres -d postgres -c \
-  "INSERT INTO test_ha (val) VALUES ('Hello after failover!');"
+make recover-dcs
+```
+Once etcd is online, Patroni nodes will automatically re-acquire lease states and election rules, electing a new leader and returning the cluster to service.
+
+---
+
+### Scenario 3: Leader Network Partition (Demotion & Fencing)
+
+A network partition cuts the leader off from the replicas and the DCS. The leader must quickly demote itself to avoid split-brain writes on the isolated network segment.
+
+**1. Simulation**
+Disconnect the active leader node from the Docker network:
+```bash
+make simulate-network-partition
 ```
 
-### Healing the Cluster
+**2. Diagnosis**
+- Run `make status`. The cluster view will report the isolated leader as offline, and the remaining nodes will have elected a new leader.
+- Run deep triage:
+  ```bash
+  make triage
+  ```
+  The triage tool will notice the mismatch and flag the partition.
+- Test client writes:
+  ```bash
+  make write-test
+  ```
+  Client writes continue normally because HAProxy dynamically routes write traffic to the new leader on the reachable network segment.
 
-Bring the stopped node back online:
+**3. Repair**
+Heal the network partition:
 ```bash
-docker compose start patroni1
+make recover-network-partition
+```
+The partitioned node will be reconnected to the network, discover that another node has assumed leadership, demote its local PostgreSQL timeline, and automatically catch up with the new leader.
+
+---
+
+### Scenario 4: Cluster Pausing (Maintenance Mode)
+
+When performing migrations or troubleshooting, you may want to freeze the cluster and prevent automatic failover.
+
+**1. Simulation**
+Pause Patroni supervision:
+```bash
+make pause-cluster
 ```
 
-Run `patronictl list` again. You should see `patroni1` rejoin the cluster as a `Replica` and automatically catch up with replication.
+**2. Diagnosis**
+- Check status:
+  ```bash
+  make status
+  ```
+  The header will show: `Cluster: patroni-cluster (paused)`.
+- Run triage:
+  ```bash
+  make triage
+  ```
+  Triage will report a critical issue: `Cluster is PAUSED — the HA loop is disabled: NO automatic failover`.
+- If you stop a node now, no failover will occur.
+
+**3. Repair**
+Resume Patroni supervision:
+```bash
+make resume-cluster
+```
 
 ---
 
@@ -197,4 +323,5 @@ make psql
 # Connect to a specific node (e.g. patroni3)
 make psql NODE=patroni3
 ```
+
 
