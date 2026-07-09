@@ -29,6 +29,9 @@ bootstrap:
         wal_keep_size: 1024MB
         checkpoint_timeout: 30s
         max_connections: 100
+    slots:
+      standby_slot:
+        type: physical
 
   init:
     pg_hba:

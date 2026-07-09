@@ -55,7 +55,7 @@ echo "=== STEP 9: Starting Standby DCS (standby-etcd) and Standby Leader Node (s
 docker compose up -d standby-etcd standby-patroni1
 
 echo "=== STEP 10: Waiting for standby-patroni1 to bootstrap as Standby Leader ==="
-until docker compose exec standby-patroni1 patronictl -c /etc/patroni/patroni.yml list 2>/dev/null | grep -iE 'standby.*leader.*running'; do
+until docker compose exec standby-patroni1 patronictl -c /etc/patroni/patroni.yml list 2>/dev/null | grep -iE 'standby-patroni1.*Standby Leader.*(running|streaming)'; do
     echo -n "."
     sleep 2
 done
