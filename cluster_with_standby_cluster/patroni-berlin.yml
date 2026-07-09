@@ -4,7 +4,7 @@ name: pg-node # Overridden by PATRONI_NAME
 
 etcd3:
   hosts:
-    - primary-etcd:2379
+    - berlin-etcd:2379
 
 restapi:
   listen: 0.0.0.0:8008

@@ -4,7 +4,7 @@ name: pg-node # Overridden by PATRONI_NAME
 
 etcd3:
   hosts:
-    - standby-etcd:2379
+    - bonn-etcd:2379
 
 restapi:
   listen: 0.0.0.0:8008
@@ -17,7 +17,7 @@ bootstrap:
     retry_timeout: 10
     maximum_lag_on_failover: 1048576
     standby_cluster:
-      host: primary-haproxy
+      host: berlin-haproxy
       port: 5000
       primary_slot_name: standby_slot
     postgresql:
