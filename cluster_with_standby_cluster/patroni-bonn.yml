@@ -1,4 +1,4 @@
-scope: standby-cluster
+scope: cluster_bonn
 namespace: /service
 name: pg-node # Overridden by PATRONI_NAME
 

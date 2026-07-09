@@ -11,7 +11,7 @@ This testing lab demonstrates a high-availability multi-site topology using two 
 
 ```mermaid
 flowchart TD
-    subgraph Primary Site [Primary Cluster (scope: primary-cluster)]
+    subgraph Primary Site [Primary Cluster (scope: cluster_berlin)]
         primary-etcd[(primary-etcd)]
         primary-patroni1[primary-patroni1\nLeader]
         primary-patroni2[primary-patroni2\nReplica]
@@ -28,7 +28,7 @@ flowchart TD
         primary-haproxy -->|GET /primary| primary-patroni1
     end
 
-    subgraph Standby Site [Standby Cluster (scope: standby-cluster)]
+    subgraph Standby Site [Standby Cluster (scope: cluster_bonn)]
         standby-etcd[(standby-etcd)]
         standby-patroni1[standby-patroni1\nStandby Leader]
         standby-patroni2[standby-patroni2\nReplica]
@@ -115,7 +115,7 @@ make promote-standby
 ## Behind the Scenes
 
 ### How Standby Clusters Bootstrap
-1. When `standby-patroni1` starts, it reads `patroni-standby.yml`.
+1. When `standby-patroni1` starts, it reads `patroni-bonn.yml`.
 2. It detects the `standby_cluster` block under `bootstrap.dcs`.
 3. Instead of initializing a blank PostgreSQL cluster, it initiates a `pg_basebackup` clone from `primary-haproxy:5000`.
 4. Once cloned, it starts up as the `Standby Leader`.

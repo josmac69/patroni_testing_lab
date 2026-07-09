@@ -26,7 +26,7 @@ echo ""
 echo "primary-patroni1 is ready and acting as the Primary Cluster Leader."
 
 echo "=== STEP 3b: Creating physical replication slot 'standby_slot' on primary-patroni1 ==="
-docker compose exec primary-patroni1 bash -c "PGPASSWORD=postgres_password psql -h localhost -U postgres -d postgres -c \"SELECT pg_create_physical_replication_slot('standby_slot');\""
+docker compose exec primary-patroni1 bash -c "PGPASSWORD=postgres_password psql -h localhost -U postgres -d postgres -c \"SELECT pg_create_physical_replication_slot('standby_slot');\"" || true
 
 echo "=== STEP 4: Creating data model and digesting initial records (MAX_RECORDS=10) ==="
 # We run the ingestion client inside primary-patroni1 pointing to its localhost postgres instance

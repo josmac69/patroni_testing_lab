@@ -21,8 +21,8 @@ A single, high-availability PostgreSQL cluster featuring:
 
 ### 2. Multi-Cluster Active-Standby Lab (`cluster_with_standby_cluster/`)
 A complex multi-site or disaster recovery simulation featuring two completely independent Patroni clusters:
-- **Primary Cluster (`primary-cluster`)**: 3 database nodes with a dedicated `primary-etcd` DCS, accepting active reads and writes.
-- **Standby Cluster (`standby-cluster`)**: 3 database nodes with a dedicated `standby-etcd` DCS, replication-fenced (read-only) and streaming data from the primary's HAProxy.
+- **Primary Cluster (`cluster_berlin`)**: 3 database nodes with a dedicated `primary-etcd` DCS, accepting active reads and writes.
+- **Standby Cluster (`cluster_bonn`)**: 3 database nodes with a dedicated `standby-etcd` DCS, replication-fenced (read-only) and streaming data from the primary's HAProxy.
 - **HAProxy Routing**: Two independent load balancers routing queries for each site.
 - **Testing Scenarios**: Physical replication slot tracking, cross-cluster replication lag, write-fencing validation, and dynamic standby cluster promotion.
 - **👉 [Active-Standby Readme](./cluster_with_standby_cluster/README.md)**
@@ -44,8 +44,8 @@ patroni_testing_lab/
     ├── Makefile                   # Lab automation
     ├── README.md                  # Standby & promotion guide
     ├── docker-compose.yml         # Orchestration for both clusters (8 services)
-    ├── patroni-primary.yml        # Configuration for active cluster
-    ├── patroni-standby.yml        # Configuration for standby cluster
+    ├── patroni-berlin.yml         # Configuration for active cluster (cluster_berlin)
+    ├── patroni-bonn.yml           # Configuration for standby cluster (cluster_bonn)
     └── scripts/                   # Sequential bootstrap & triage scripts
 ```
 

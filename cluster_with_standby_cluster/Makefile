@@ -28,10 +28,10 @@ help:
 	@echo "Triage & Maintenance Commands:"
 	@echo "  make triage [CLUSTER=primary|standby] - Run deep triage audit on primary or standby cluster leader (default: CLUSTER=primary)"
 	@echo "  make promote-standby             - Promote Standby cluster to standalone primary"
-	@echo "  make pause-primary               - Pause Patroni auto-failover/supervision for primary cluster"
-	@echo "  make resume-primary              - Resume Patroni auto-failover/supervision for primary cluster"
-	@echo "  make pause-standby               - Pause Patroni auto-failover/supervision for standby cluster"
-	@echo "  make resume-standby              - Resume Patroni auto-failover/supervision for standby cluster"
+	@echo "  make pause-primary               - Pause Patroni auto-failover/supervision for cluster_berlin"
+	@echo "  make resume-primary              - Resume Patroni auto-failover/supervision for cluster_berlin"
+	@echo "  make pause-standby               - Pause Patroni auto-failover/supervision for cluster_bonn"
+	@echo "  make resume-standby              - Resume Patroni auto-failover/supervision for cluster_bonn"
 	@echo ""
 	@echo "Simulation & Failure Testing Commands:"
 	@echo "  make simulate-primary-leader-failure  - Detect and stop the active primary leader container"
@@ -217,7 +217,7 @@ simulate-network-partition-standby:
 pause-primary:
 	@RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'primary-patroni' | head -n 1); \
 	if [ -n "$$RUNNING" ]; then \
-		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml pause primary-cluster; \
+		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml pause cluster_berlin; \
 	else \
 		echo "No running primary Patroni nodes found."; \
 	fi
@@ -225,7 +225,7 @@ pause-primary:
 resume-primary:
 	@RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'primary-patroni' | head -n 1); \
 	if [ -n "$$RUNNING" ]; then \
-		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml resume primary-cluster; \
+		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml resume cluster_berlin; \
 	else \
 		echo "No running primary Patroni nodes found."; \
 	fi
@@ -233,7 +233,7 @@ resume-primary:
 pause-standby:
 	@RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'standby-patroni' | head -n 1); \
 	if [ -n "$$RUNNING" ]; then \
-		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml pause standby-cluster; \
+		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml pause cluster_bonn; \
 	else \
 		echo "No running standby Patroni nodes found."; \
 	fi
@@ -241,7 +241,7 @@ pause-standby:
 resume-standby:
 	@RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'standby-patroni' | head -n 1); \
 	if [ -n "$$RUNNING" ]; then \
-		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml resume standby-cluster; \
+		docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml resume cluster_bonn; \
 	else \
 		echo "No running standby Patroni nodes found."; \
 	fi
@@ -287,10 +287,10 @@ reinit-node:
 		exit 1; \
 	fi
 	@if echo "$(NODE)" | grep -q 'primary'; then \
-		CLUSTER_NAME="primary-cluster"; \
+		CLUSTER_NAME="cluster_berlin"; \
 		RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'primary-patroni' | grep -v "$(NODE)" | head -n 1); \
 	else \
-		CLUSTER_NAME="standby-cluster"; \
+		CLUSTER_NAME="cluster_bonn"; \
 		RUNNING=$$(docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'standby-patroni' | grep -v "$(NODE)" | head -n 1); \
 	fi; \
 	if [ -z "$$RUNNING" ]; then \

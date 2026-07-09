@@ -53,7 +53,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: primary-etcd:2379
     volumes:
-      - ./patroni-primary.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-berlin.yml:/etc/patroni/patroni.yml:ro
       - primary-pgdata1:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:
@@ -72,7 +72,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: primary-etcd:2379
     volumes:
-      - ./patroni-primary.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-berlin.yml:/etc/patroni/patroni.yml:ro
       - primary-pgdata2:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:
@@ -91,7 +91,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: primary-etcd:2379
     volumes:
-      - ./patroni-primary.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-berlin.yml:/etc/patroni/patroni.yml:ro
       - primary-pgdata3:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:
@@ -113,7 +113,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: standby-etcd:2379
     volumes:
-      - ./patroni-standby.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-bonn.yml:/etc/patroni/patroni.yml:ro
       - standby-pgdata1:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:
@@ -132,7 +132,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: standby-etcd:2379
     volumes:
-      - ./patroni-standby.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-bonn.yml:/etc/patroni/patroni.yml:ro
       - standby-pgdata2:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:
@@ -151,7 +151,7 @@ services:
       PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
       PATRONI_ETCD3_HOSTS: standby-etcd:2379
     volumes:
-      - ./patroni-standby.yml:/etc/patroni/patroni.yml:ro
+      - ./patroni-bonn.yml:/etc/patroni/patroni.yml:ro
       - standby-pgdata3:/data/patroni
       - ./scripts:/scripts:ro
     depends_on:

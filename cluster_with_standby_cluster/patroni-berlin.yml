@@ -1,4 +1,4 @@
-scope: primary-cluster
+scope: cluster_berlin
 namespace: /service
 name: pg-node # Overridden by PATRONI_NAME
 
