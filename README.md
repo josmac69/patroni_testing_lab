@@ -29,6 +29,17 @@ A complex multi-site or disaster recovery simulation featuring two completely in
 
 ---
 
+### 3. Patroni Lab Enhancements (`patroni_lab_enhancements/`)
+A production-grade, learning-first sandbox containing:
+- **3-Node etcd DCS Quorum**: A genuine 3-node etcd cluster to demonstrate quorum loss mechanics.
+- **Observability Stack**: Pre-configured Prometheus and Grafana dashboards for real-time metric analysis.
+- **pgBackRest Integration**: Out-of-the-box backups, stanza creation, and replica rebuilds via a shared backup repository.
+- **Upgrade Runbooks**: Automated scripts for major PostgreSQL version upgrades.
+- **Chaos Injection**: Detailed guides for Toxiproxy fault simulation (e.g. asymmetrical partitions).
+- **👉 [Patroni Lab Enhancements Readme](./patroni_lab_enhancements/README.md)**
+
+---
+
 ## Directory Structure
 
 ```text
@@ -47,6 +58,13 @@ patroni_testing_lab/
     ├── patroni-berlin.yml         # Configuration for active cluster (cluster_berlin)
     ├── patroni-bonn.yml           # Configuration for standby cluster (cluster_bonn)
     └── scripts/                   # Sequential bootstrap & triage scripts
+│
+└── patroni_lab_enhancements/      # Setup 3: Production-grade lab enhancements
+    ├── enhanced_3_nodes/          # Flagship lab with 3 etcd nodes, Grafana, and Prometheus
+    ├── chaos/                     # Toxiproxy and fault injection guides
+    ├── backup_pgbackrest/         # pgBackRest integration lab and PITR guides
+    ├── upgrade_pg_major/          # Major version upgrade automation
+    └── ci/                        # Example GitHub Actions self-test validation
 ```
 
 ---
@@ -101,3 +119,20 @@ To allow running both labs simultaneously or independently without conflict, hos
    ```bash
    make promote-standby
    ```
+
+### Running the Patroni Lab Enhancements
+1. Navigate to the directory:
+   ```bash
+   cd patroni_lab_enhancements/enhanced_3_nodes
+   ```
+2. Bootstrap the environment:
+   ```bash
+   make up
+   ```
+3. Run an automated scenario (e.g., failover):
+   ```bash
+   ./scripts/scenario_failover.sh
+   ```
+4. Access dashboards:
+   - **Grafana**: [http://localhost:3000](http://localhost:3000) (admin/admin)
+   - **Prometheus**: [http://localhost:9090](http://localhost:9090)
