@@ -47,17 +47,38 @@ to lab images needed).
 ## Experiment recipes
 
 1. **Slow DCS, default vs aggressive timers.**
-   `./pumba/netem_delay.sh etcd1 800 120s` against all three etcd nodes,
-   first with default timers, then after `make profile-aggressive-timers`.
-   Expected: stable in the first run; leader-key refresh failures and
-   possibly demotion in the second.
+   ```bash
+   # Add 800ms delay to all three etcd nodes for 120 seconds:
+   ./pumba/netem_delay.sh etcd1 800 120s
+   ./pumba/netem_delay.sh etcd2 800 120s
+   ./pumba/netem_delay.sh etcd3 800 120s
+   ```
+   *Expected Outcome:* Stable under default timers. If you switch to aggressive timers (`make -C ../enhanced_3_nodes profile-aggressive-timers`), repeating this will trigger leader-key refresh failures and spurious demotion.
+   *Verify:* Check cluster status via `make -C ../enhanced_3_nodes status`.
+
 2. **Replication degradation before a crash.**
-   `./pumba/netem_loss.sh patroni2 15 120s`, watch lag grow in Grafana,
-   then `make scenario-failover`. Observe candidate selection honour
-   `maximum_lag_on_failover`.
+   ```bash
+   # Inject 15% packet loss on patroni2 for 120 seconds:
+   ./pumba/netem_loss.sh patroni2 15 120s
+   ```
+   *Expected Outcome:* Streaming replication lag grows.
+   *Verify:* Watch the lag increase on the Grafana dashboard or check:
+   ```bash
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 patronictl -c /tmp/patroni.yml list
+   ```
+   While lag is high, trigger a failover:
+   ```bash
+   make -C ../enhanced_3_nodes scenario-failover
+   ```
+   Observe candidate selection honoring `maximum_lag_on_failover`.
+
 3. **Freeze, not kill.**
-   `./pumba/pause_process.sh <leader> 60s` — the exact scenario the
-   watchdog exists for (docs/05_watchdog.md in the enhanced lab).
+   ```bash
+   # Freeze the leader (e.g. patroni1) for 60 seconds:
+   ./pumba/pause_process.sh patroni1 60s
+   ```
+   *Expected Outcome:* The leader stops renewing the DCS key but is not dead. The remaining nodes promote a new leader. When the ex-leader unfreezes, the watchdog triggers to prevent split-brain.
+   *Verify:* View logs using `make -C ../enhanced_3_nodes logs`.
 
 ## Toxiproxy variant (`toxiproxy.md`)
 

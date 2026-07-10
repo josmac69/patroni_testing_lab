@@ -16,31 +16,37 @@ a PgBouncer variant to run, and comparison notes for the other two.
 
 ## 1. PgBouncer (`pgbouncer/`)
 
-Add the service from `pgbouncer/compose-snippet.yml` to the enhanced lab and
-point the ingestion client at `pgbouncer:6432`. Re-run
-`make measure-rpo-rto` and compare RTO with the baseline: transaction
-pooling typically *smooths* the post-failover reconnect storm (existing
-server connections die once, clients queue instead of erroring), at the cost
-of session features (prepared statements need `max_prepared_statements`,
-PgBouncer ≥ 1.21).
+Add the service from `pgbouncer/compose-snippet.yml` to the enhanced lab and point the ingestion client at `pgbouncer:6432`.
+
+### How to test:
+1. Append the `pgbouncer` service snippet from `pgbouncer/compose-snippet.yml` under the `services:` block in `enhanced_3_nodes/docker-compose.yml`.
+2. Spin up the pooler:
+   ```bash
+   cd ../enhanced_3_nodes
+   docker compose up -d pgbouncer
+   ```
+3. Run the harness client to connect through PgBouncer:
+   ```bash
+   docker compose exec client python rpo_rto_harness.py --duration 120
+   ```
+4. Re-run `make measure-rpo-rto` and compare RTO with the baseline. Transaction pooling typically *smooths* the post-failover reconnect storm.
 
 Failover-relevant settings in `pgbouncer.ini`:
-`server_login_retry` (how fast the pooler retries the backend after failure)
-and `query_wait_timeout` (how long client queries queue during the outage
-before erroring — effectively the pooler's opinion about your RTO budget).
+`server_login_retry` (how fast the pooler retries the backend after failure) and `query_wait_timeout` (how long client queries queue during the outage before erroring).
 
 ## 2. libpq multi-host (no extra service)
 
-    psql "host=localhost,localhost,localhost port=5432,5433,5434 \
-          target_session_attrs=read-write user=postgres"
+Run the test client container using a multi-host connection string directly targeting the Patroni node hosts:
+```bash
+docker compose exec client psql "host=patroni1,patroni2,patroni3 port=5432,5432,5432 target_session_attrs=read-write user=postgres dbname=postgres" -c "SELECT pg_is_in_recovery();"
+```
 
-To demo without HAProxy, publish each node's 5432 on distinct host ports.
-Teaching points: `target_session_attrs=read-write` (≥ PG 10) vs `primary` /
-`prefer-standby` (≥ PG 14); detection happens at *connect* time only — a
-long-lived connection to a demoted primary is not magically redirected,
-which is exactly what HAProxy's `on-marked-down shutdown-sessions` solves
-at the LB layer. Combine with `connect_timeout` and connection retry in the
-application for the full client-side HA story.
+To demo client-side failover without HAProxy:
+1. Publish each node's `5432` port to unique host ports in `docker-compose.yml`.
+2. Connect from the host machine using:
+   ```bash
+   psql "host=localhost,localhost,localhost port=5432,5433,5434 target_session_attrs=read-write user=postgres"
+   ```
 
 ## 3. vip-manager (documented, not containerized)
 

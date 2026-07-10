@@ -23,24 +23,53 @@ lab uses rebuild; for the 6 TB-class real-world case, rehearse the rsync
 procedure separately and pair it with the pgBackRest lab so the rebuild does
 not read from the primary.
 
-## Sequence (see `upgrade_leader.sh` for the executable version)
+## Actionable Sequence
 
- 1. `make measure-rpo-rto` baseline on the old version; note results.
- 2. Build new images: set `PG_MAJOR` in `.env`, `docker compose build`.
-    Images must contain **both** binaries (old + new) for `pg_upgrade`;
-    the script documents the Dockerfile adjustment
-    (`apt-get install postgresql-<old>` alongside the base image's new
-    version, both from PGDG).
- 3. `patronictl pause` — Patroni stops managing PostgreSQL.
- 4. Stop PostgreSQL cleanly on all nodes (leader last).
- 5. On the leader: `initdb` the new data dir, `pg_upgrade --link --check`,
-    then the real run.
- 6. `patronictl remove <scope>` — wipe DCS state (the step people forget).
- 7. Start Patroni on the leader with the new data dir → it re-bootstraps
-    the scope as a new cluster on the upgraded PostgreSQL.
- 8. Reinit both standbys.
- 9. `patronictl resume` (if paused state persisted), run
-    `vacuumdb --all --analyze-in-stages`, re-run the RPO/RTO baseline.
+### Step 1: Record baseline metrics
+Run the RPO/RTO metrics baseline on the old PostgreSQL version:
+```bash
+cd ../enhanced_3_nodes
+make measure-rpo-rto
+```
+
+### Step 2: Build the new PostgreSQL version images
+Modify `.env` in `enhanced_3_nodes` (e.g. update `PG_MAJOR` from `17` to `18`), then rebuild:
+```bash
+docker compose build
+```
+*(Ensure the Dockerfile contains packages for both versions so `pg_upgrade` has access to both sets of binaries).*
+
+### Step 3: Run the automated upgrade script
+Run the scripted upgrade procedure for the leader node from the `upgrade_pg_major/` folder:
+```bash
+cd ../upgrade_pg_major
+OLD=17 NEW=18 LEADER=patroni1 ./upgrade_leader.sh
+```
+
+### Step 4: Rebuild/Reinitialize the standby replicas
+Standby nodes cannot be linked-upgraded; they must be re-initialized against the new leader:
+```bash
+# Reinit standby patroni2:
+docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 patronictl -c /tmp/patroni.yml reinit lab patroni2 --force
+
+# Reinit standby patroni3:
+docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 patronictl -c /tmp/patroni.yml reinit lab patroni3 --force
+```
+
+### Step 5: Resume Patroni and optimize catalog
+Resume normal cluster monitoring and optimize the system catalogs (since stat tables are not copied):
+```bash
+# Resume cluster management:
+docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 patronictl -c /tmp/patroni.yml resume
+
+# Run analyze/vacuum across databases:
+docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 vacuumdb -h localhost -p 5432 -U postgres --all --analyze-in-stages
+```
+
+### Step 6: Verify upgraded RPO/RTO metrics
+```bash
+make -C ../enhanced_3_nodes measure-rpo-rto
+```
 
 ## Discussion points for training
 

@@ -38,12 +38,39 @@ The flagship `enhanced_3_nodes` stack comes pre-configured with pgBackRest:
 
 ## Order of operations (first run)
 
-    # 1. enable archiving via patronictl (above), restart if pending
-    # 2. create the stanza and take the first full backup (on the LEADER):
-    docker compose exec patroni1 pgbackrest --stanza=lab stanza-create
-    docker compose exec patroni1 pgbackrest --stanza=lab --type=full backup
-    docker compose exec patroni1 pgbackrest --stanza=lab info
+1. **Enable archiving via `patronictl`:**
+   ```bash
+   # Edit dynamic configuration:
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 patronictl -c /tmp/patroni.yml edit-config --force \
+     -s "postgresql.parameters.archive_mode=on" \
+     -s "postgresql.parameters.archive_command=pgbackrest --stanza=lab archive-push %p"
+   ```
 
-    # 3. prove the replica-from-repo path:
-    make -C ../enhanced_3_nodes scenario-reinit-replica
-    # then check the victim's logs for 'restore' from pgbackrest, not basebackup
+2. **Restart the containers to apply changes:**
+   ```bash
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml restart patroni1 patroni2 patroni3
+   ```
+
+3. **Initialize the stanza and take the first full backup:**
+   ```bash
+   # Create the pgBackRest stanza:
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 pgbackrest --stanza=lab stanza-create
+
+   # Perform a full backup:
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 pgbackrest --stanza=lab --type=full backup
+
+   # View backup repository info:
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml exec patroni1 pgbackrest --stanza=lab info
+   ```
+
+4. **Prove the replica-from-repo path:**
+   ```bash
+   # Reinitialize replica patroni2:
+   make -C ../enhanced_3_nodes scenario-reinit-replica
+
+   # Verify in the logs that patroni2 is restoring from pgBackRest rather than basebackup:
+   docker compose -f ../enhanced_3_nodes/docker-compose.yml logs patroni2 | grep pgbackrest
+   ```
+
+5. **Point-In-Time Recovery (PITR):**
+   Follow the detailed manual recovery commands listed in [pitr_runbook.md](docs/pitr_runbook.md).

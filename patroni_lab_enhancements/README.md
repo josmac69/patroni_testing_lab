@@ -28,6 +28,19 @@
 5. `routing_variants` — decompose the RTO into Patroni's share and the
    routing layer's share.
 
+## Actionable Lab Quickstart
+
+All modules in this directory run on top of the flagship `enhanced_3_nodes` cluster. Always boot the cluster first:
+
+```bash
+# Start the cluster and wait for initialization
+cd enhanced_3_nodes/
+make up
+
+# Check current Patroni cluster status
+make status
+```
+
 ## Version notes
 
 * Patroni pinned to 4.1.4; PostgreSQL major selectable via `.env`
