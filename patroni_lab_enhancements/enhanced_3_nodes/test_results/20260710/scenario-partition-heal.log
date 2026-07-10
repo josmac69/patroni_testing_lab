@@ -1,0 +1,40 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-partition-heal 
+./scripts/scenario_partition_leader.sh heal
+
+========================================================================
+🚀 reconnecting patroni2
+========================================================================
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Leader  | running   | 12 |             |     |            |     |
+| patroni2 | patroni2 | Replica | streaming | 12 |   0/600C4A8 |   0 |  0/600C4A8 |   0 |
+| patroni3 | patroni3 | Replica | streaming | 12 |   0/600C4A8 |   0 |  0/600C4A8 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+ℹ️  Inspect the healing path:
+ℹ️    docker compose logs patroni2 | grep -iE 'rewind|demot|follow' | tail -20
+
+
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ docker compose logs patroni2 | grep -iE 'rewind|demot|follow' | tail -20
+patroni2  | 2026-07-10 11:59:34,943 INFO: demoting self because DCS is not accessible and I was a leader
+patroni2  | 2026-07-10 11:59:34,943 INFO: Demoting self (offline)
+patroni2  | 2026-07-10 11:59:36,382 INFO: demoted self because DCS is not accessible and I was a leader
+patroni2  | The above exception was the direct cause of the following exception:
+patroni2  | 2026-07-10 12:06:49,331 INFO: demoting self because DCS is not accessible and I was a leader
+patroni2  | 2026-07-10 12:06:49,331 INFO: Demoting self (offline)
+patroni2  | 2026-07-10 12:07:33,231 INFO: demoted self because DCS is not accessible and I was a leader
+patroni2  | 2026-07-10 12:07:59,906 INFO: running pg_rewind from patroni1
+patroni2  | 2026-07-10 12:08:00,963 INFO: running pg_rewind from dbname=postgres user=postgres host=patroni1 port=5432 target_session_attrs=read-write
+patroni2  | 2026-07-10 12:08:01,686 INFO: pg_rewind exit code=0
+patroni2  | 2026-07-10 12:08:01,687 INFO:  stderr=pg_rewind: servers diverged at WAL location 0/60070E8 on timeline 11
+patroni2  | pg_rewind: rewinding from last common checkpoint at 0/5000E78 on timeline 11
+patroni2  | pg_rewind: Done!
+patroni2  | 2026-07-10 12:08:03,956 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:08:12,517 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:08:21,777 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:08:31,860 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:08:41,853 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:08:51,850 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+patroni2  | 2026-07-10 12:09:01,902 INFO: no action. I am (patroni2), a secondary, and following a leader (patroni1)
+

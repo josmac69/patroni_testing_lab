@@ -1,0 +1,25 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-partition-leader 
+./scripts/scenario_partition_leader.sh partition
+
+========================================================================
+🚀 disconnecting patroni2 from patroni_labnet
+========================================================================
+
+========================================================================
+🚀 watching for promotion on the majority side
+========================================================================
+ℹ️  t+4s: no new leader yet
+ℹ️  t+8s: no new leader yet
+ℹ️  t+12s: no new leader yet
+ℹ️  t+16s: no new leader yet
+ℹ️  t+20s: no new leader yet
+ℹ️  t+24s: no new leader yet
+✅ t+28s: new leader is patroni1
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Leader  | running   | 12 |             |     |            |     |
+| patroni3 | patroni3 | Replica | streaming | 12 |   0/60070E8 |   0 |  0/60070E8 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+
