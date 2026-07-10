@@ -15,7 +15,7 @@ source scripts/lib.sh
 run_pass() {
     local mode="$1"
     banner "PASS: failsafe_mode=$mode"
-    docker compose exec -T patroni1 patronictl -c /tmp/patroni.yml \
+    patronictl \
         edit-config --force -s "failsafe_mode=$mode"
     sleep 12   # let the config propagate on the next HA loop
 
@@ -39,5 +39,5 @@ run_pass false
 run_pass true
 
 banner "cleanup: leaving failsafe_mode=false (lab default)"
-docker compose exec -T patroni1 patronictl -c /tmp/patroni.yml \
+patronictl \
     edit-config --force -s "failsafe_mode=false"

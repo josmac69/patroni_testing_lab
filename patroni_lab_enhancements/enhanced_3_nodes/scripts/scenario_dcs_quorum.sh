@@ -32,7 +32,7 @@ case "${1:-}" in
   lost)
     banner "stopping etcd2 and etcd3 (2 of 3) - quorum LOST"
     echo "Current failsafe_mode setting:"
-    docker compose exec -T patroni1 patronictl -c /tmp/patroni.yml show-config \
+    patronictl show-config \
       | grep -i failsafe || echo "  failsafe_mode: not set (defaults to false)"
     docker compose stop etcd2 etcd3
     banner "watching for up to 60s - with failsafe off, expect demotion within ttl"

@@ -5,7 +5,11 @@
 # ===========================================================================
 SHELL := /bin/bash
 COMPOSE := docker compose
-PATRONICTL := $(COMPOSE) exec patroni1 patronictl -c /tmp/patroni.yml
+
+# Find a running Patroni node dynamically, fallback to patroni1 if none are running
+RUNNING_NODE = $(shell docker compose ps --filter "status=running" --format "{{.Name}}" | grep -E 'patroni[1-3]' | head -n 1)
+PATRONI_NODE = $(if $(RUNNING_NODE),$(RUNNING_NODE),patroni1)
+PATRONICTL = $(COMPOSE) exec $(PATRONI_NODE) patronictl -c /tmp/patroni.yml
 
 .DEFAULT_GOAL := help
 

@@ -23,7 +23,7 @@ cluster_list
 
 banner "reinitializing $victim from the leader"
 SCOPE="${CLUSTER_SCOPE:-lab}"
-docker compose exec -T patroni1 patronictl -c /tmp/patroni.yml \
+patronictl \
     reinit "$SCOPE" "$victim" --force
 sleep 20
 cluster_list

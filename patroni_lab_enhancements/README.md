@@ -1,12 +1,4 @@
-# Patroni Testing Lab — Enhancement Package
-
-Drop-in extension of `patroni_testing_lab`, built along the roadmap from the
-repository analysis. Design goals: a **learning lab** first — every scenario
-carries an expected timeline and the teaching point it exists for — and
-every claim about failover behaviour is backed by a measurement, not an
-assertion.
-
-## Contents
+# Contents
 
 | Directory | What it adds |
 |---|---|

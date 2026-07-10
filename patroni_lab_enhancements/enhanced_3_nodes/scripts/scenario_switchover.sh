@@ -13,8 +13,7 @@ cluster_list
 
 leader=$(current_leader)
 banner "switching over away from $leader"
-docker compose exec -T patroni1 \
-    patronictl -c /tmp/patroni.yml switchover --leader "$leader" --force
+patronictl switchover --leader "$leader" --force
 
 sleep 5
 banner "state after switchover"
