@@ -1,0 +1,41 @@
+{
+  "title": "etcd DCS Quorum & Performance",
+  "uid": "etcd-metrics",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Leader Health (1 = Has Leader)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "targets": [{ "expr": "etcd_server_has_leader", "legendFormat": "{{instance}}" }],
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [
+        { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } } }
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Proposals Committed per Second",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [{ "expr": "rate(etcd_server_proposals_committed_total[30s])", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Pending Proposals",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [{ "expr": "etcd_server_proposals_pending", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Database Total Size (Bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "targets": [{ "expr": "etcd_debugging_mvcc_db_total_size_in_bytes", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Client Received Bytes per Second",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "targets": [{ "expr": "rate(etcd_network_client_grpc_received_bytes_total[1m])", "legendFormat": "{{instance}}" }]
+    }
+  ]
+}

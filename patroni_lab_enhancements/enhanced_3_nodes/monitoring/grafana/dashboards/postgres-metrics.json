@@ -1,0 +1,51 @@
+{
+  "title": "PostgreSQL Database Engine Metrics",
+  "uid": "postgres-metrics",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "Database Connections (Active Backends)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "pg_stat_database_numbackends", "legendFormat": "{{instance}} - {{datname}}" }]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Database Size (Bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "pg_database_size_bytes", "legendFormat": "{{instance}} - {{datname}}" }]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Transactions Committed per Second",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{ "expr": "rate(pg_stat_database_xact_commit[30s])", "legendFormat": "{{instance}} - {{datname}} commits" }]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Transactions Rolled Back per Second",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [{ "expr": "rate(pg_stat_database_xact_rollback[30s])", "legendFormat": "{{instance}} - {{datname}} rollbacks" }]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Buffer Cache Hit Ratio (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{
+        "expr": "(sum(rate(pg_stat_database_blks_hit[1m])) by (instance) / (sum(rate(pg_stat_database_blks_hit[1m]) + rate(pg_stat_database_blks_read[1m])) by (instance) + 1)) * 100",
+        "legendFormat": "{{instance}}"
+      }]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Tuples Returned / Fetched per Second",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_tup_returned[1m])) by (instance)", "legendFormat": "{{instance}} returned" },
+        { "expr": "sum(rate(pg_stat_database_tup_fetched[1m])) by (instance)", "legendFormat": "{{instance}} fetched" }
+      ]
+    }
+  ]
+}

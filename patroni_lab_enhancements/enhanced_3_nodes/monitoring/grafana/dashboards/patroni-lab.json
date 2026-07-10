@@ -7,6 +7,7 @@
   "panels": [
     {
       "id": 1, "type": "stat", "title": "Primary per node (1 = leader)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 12, "x": 0, "y": 0 },
       "targets": [{ "expr": "patroni_primary", "legendFormat": "{{instance}}" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [
@@ -14,6 +15,7 @@
     },
     {
       "id": 2, "type": "stat", "title": "PostgreSQL running",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 12, "x": 12, "y": 0 },
       "targets": [{ "expr": "patroni_postgres_running", "legendFormat": "{{instance}}" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [
@@ -21,16 +23,19 @@
     },
     {
       "id": 3, "type": "timeseries", "title": "Leader over time (watch failovers)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
       "targets": [{ "expr": "patroni_primary", "legendFormat": "{{instance}}" }]
     },
     {
       "id": 4, "type": "timeseries", "title": "Cluster timeline (bumps on every promotion)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
       "targets": [{ "expr": "patroni_postgres_timeline", "legendFormat": "{{instance}}" }]
     },
     {
       "id": 5, "type": "timeseries", "title": "Replica replay lag vs leader (bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
       "targets": [{
         "expr": "clamp_min(max(patroni_xlog_location) - on() group_right() patroni_xlog_replayed_location, 0) and patroni_replica == 1",
@@ -39,6 +44,7 @@
     },
     {
       "id": 6, "type": "timeseries", "title": "Commit rate (xact_commit/s, via postgres_exporter)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
       "targets": [{
         "expr": "sum by (instance) (rate(pg_stat_database_xact_commit[30s]))",
@@ -47,11 +53,13 @@
     },
     {
       "id": 7, "type": "timeseries", "title": "etcd: has leader (quorum health)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 21 },
       "targets": [{ "expr": "etcd_server_has_leader", "legendFormat": "{{instance}}" }]
     },
     {
       "id": 8, "type": "timeseries", "title": "HAProxy backend status (primary listener)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 21 },
       "targets": [{
         "expr": "haproxy_server_status{proxy=\"primary\"}",

@@ -1,0 +1,42 @@
+{
+  "title": "System Resources (Node Exporter)",
+  "uid": "system-metrics",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "CPU Utilization (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Memory Usage (Bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "legendFormat": "{{instance}} - Used" },
+        { "expr": "node_memory_MemTotal_bytes", "legendFormat": "{{instance}} - Total" }
+      ]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Network Traffic (Received / Transmitted)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(node_network_receive_bytes_total[1m])) by (instance)", "legendFormat": "{{instance}} - Rx" },
+        { "expr": "sum(rate(node_network_transmit_bytes_total[1m])) by (instance)", "legendFormat": "{{instance}} - Tx" }
+      ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Disk I/O Read / Write Bytes/s",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(node_disk_read_bytes_total[1m])) by (instance)", "legendFormat": "{{instance}} - Read" },
+        { "expr": "sum(rate(node_disk_written_bytes_total[1m])) by (instance)", "legendFormat": "{{instance}} - Written" }
+      ]
+    }
+  ]
+}

@@ -151,6 +151,45 @@ services:
       DATA_SOURCE_NAME: "postgresql://postgres:postgres@patroni3:5432/postgres?sslmode=disable"
     depends_on: [patroni3]
 
+  node-exporter1:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG}
+    container_name: node-exporter1
+    networks: [labnet]
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+
+  node-exporter2:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG}
+    container_name: node-exporter2
+    networks: [labnet]
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+
+  node-exporter3:
+    image: prom/node-exporter:${NODE_EXPORTER_TAG}
+    container_name: node-exporter3
+    networks: [labnet]
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+
   # --- workload ------------------------------------------------------------
   client:
     build: ./client
