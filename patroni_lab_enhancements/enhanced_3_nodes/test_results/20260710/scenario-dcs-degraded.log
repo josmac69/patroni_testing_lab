@@ -1,0 +1,19 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-dcs-degraded 
+./scripts/scenario_dcs_quorum.sh degraded
+
+========================================================================
+🚀 stopping etcd3 (1 of 3) - quorum holds, expect no impact
+========================================================================
+[+] stop 1/1
+ ✔ Container etcd3 Stopped                                                                                                                                                              2.0s
+2026-07-10 11:46:27,149 - WARNING - failed to resolve host etcd3: [Errno -5] No address associated with hostname
+2026-07-10 11:46:27,149 - ERROR - Failed to get list of machines from http://etcd3:2379/v3beta: MaxRetryError('HTTPConnectionPool(host=\'etcd3\', port=2379): Max retries exceeded with url: /version (Caused by NewConnectionError("HTTPConnection(host=\'etcd3\', port=2379): Failed to establish a new connection: getaddrinfo returns an empty list"))')
+2026-07-10 11:46:27,197 - WARNING - failed to resolve host etcd3: [Errno -5] No address associated with hostname
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Replica | streaming |  9 |   0/44F0808 |   0 |  0/44F0808 |   0 |
+| patroni2 | patroni2 | Leader  | running   |  9 |             |     |            |     |
+| patroni3 | patroni3 | Replica | streaming |  9 |   0/44F0808 |   0 |  0/44F0808 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+✅ Writes still work: psql -h localhost -p 5000 -U postgres -c 'select 1'

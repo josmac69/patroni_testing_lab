@@ -1,0 +1,77 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-failsafe-demo 
+./scripts/scenario_failsafe.sh
+
+========================================================================
+🚀 PASS: failsafe_mode=false
+========================================================================
+Not changed
+
+========================================================================
+🚀 stopping etcd2 + etcd3 (quorum loss)
+========================================================================
+[+] stop 2/2
+ ✔ Container etcd3 Stopped                                                                                                                                                              1.3s
+ ✔ Container etcd2 Stopped                                                                                                                                                              1.3s
+⚠️  RESULT: no writable leader - primary demoted to read-only
+
+========================================================================
+🚀 recovering etcd
+========================================================================
+[+] start 2/2
+ ✔ Container etcd2 Started                                                                                                                                                              0.2s
+ ✔ Container etcd3 Started                                                                                                                                                              0.2s
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Replica | streaming | 11 |   0/4501C30 |   0 |  0/4501C30 |   0 |
+| patroni2 | patroni2 | Leader  | running   | 11 |             |     |            |     |
+| patroni3 | patroni3 | Replica | streaming | 11 |   0/4501C30 |   0 |  0/4501C30 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+========================================================================
+🚀 PASS: failsafe_mode=true
+========================================================================
+--- 
++++ 
+@@ -1,4 +1,4 @@
+-failsafe_mode: false
++failsafe_mode: true
+ loop_wait: 10
+ maximum_lag_on_failover: 1048576
+ postgresql:
+Configuration changed
+
+========================================================================
+🚀 stopping etcd2 + etcd3 (quorum loss)
+========================================================================
+[+] stop 2/2
+ ✔ Container etcd3 Stopped                                                                                                                                                              7.3s
+ ✔ Container etcd2 Stopped                                                                                                                                                              3.2s
+✅ RESULT: leader patroni2 still serving writes (failsafe kept it up)
+
+========================================================================
+🚀 recovering etcd
+========================================================================
+[+] start 2/2
+ ✔ Container etcd2 Started                                                                                                                                                              0.2s
+ ✔ Container etcd3 Started                                                                                                                                                              0.2s
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Replica | streaming | 11 |   0/4506350 |   0 |  0/4506350 |   0 |
+| patroni2 | patroni2 | Leader  | running   | 11 |             |     |            |     |
+| patroni3 | patroni3 | Replica | streaming | 11 |   0/4506350 |   0 |  0/4506350 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+========================================================================
+🚀 cleanup: leaving failsafe_mode=false (lab default)
+========================================================================
+--- 
++++ 
+@@ -1,4 +1,4 @@
+-failsafe_mode: true
++failsafe_mode: false
+ loop_wait: 10
+ maximum_lag_on_failover: 1048576
+ postgresql:
+Configuration changed

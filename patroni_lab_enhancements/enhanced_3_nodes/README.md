@@ -34,8 +34,10 @@ Service access:
 | `make scenario-switchover` | planned zero-loss switchover |
 | `make scenario-dcs-degraded` | 1/3 etcd down: nothing happens (the point) |
 | `make scenario-dcs-quorum-loss` | 2/3 etcd down: primary demotes to read-only |
+| `make scenario-dcs-recover` | recover/restart the etcd consensus nodes |
 | `make scenario-failsafe-demo` | same outage with failsafe_mode off vs on |
 | `make scenario-partition-leader` | split-brain drill: isolated leader self-demotes |
+| `make scenario-partition-heal` | heal the network partition and rejoin the ex-leader |
 | `make scenario-reinit-replica` | broken replica, `patronictl reinit` |
 | `make pause` / `make resume` | maintenance mode |
 | `make measure-rpo-rto` | quantitative RPO/RTO under any of the above (default fast rate) |

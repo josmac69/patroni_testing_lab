@@ -1,0 +1,31 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-dcs-quorum-loss 
+./scripts/scenario_dcs_quorum.sh lost
+
+========================================================================
+🚀 stopping etcd2 and etcd3 (2 of 3) - quorum LOST
+========================================================================
+ℹ️  Current failsafe_mode setting:
+2026-07-10 11:48:54,189 - WARNING - failed to resolve host etcd3: [Errno -5] No address associated with hostname
+failsafe_mode: false
+[+] stop 2/2
+ ✔ Container etcd2 Stopped                                                                                                                                                              2.0s
+ ✔ Container etcd3 Stopped                                                                                                                                                              0.0s
+
+========================================================================
+🚀 watching for up to 60s - with failsafe off, expect demotion within ttl
+========================================================================
+ℹ️  t+5s: leader still patroni2 (failsafe active?)
+ℹ️  t+10s: leader still patroni2 (failsafe active?)
+ℹ️  t+15s: leader still patroni2 (failsafe active?)
+⚠️  t+20s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+25s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+30s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+35s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+40s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+45s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+50s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+55s: NO leader answering /primary - primary demoted, cluster read-only
+⚠️  t+60s: NO leader answering /primary - primary demoted, cluster read-only
+
+ℹ️  Verify read-only:  psql -h localhost -p 5000 ... -> connection refused/failed
+ℹ️  Reads still fine:  psql -h localhost -p 5001 -U postgres -c 'select 1'
