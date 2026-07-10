@@ -43,6 +43,7 @@ config: ## Show current dynamic configuration stored in the DCS
 logs: ## Follow Patroni logs of all nodes
 	$(COMPOSE) logs -f patroni1 patroni2 patroni3
 
+
 # --- replication profiles (applied at runtime via the DCS) -----------------
 profile-async: ## Default profile: asynchronous replication
 	$(PATRONICTL) edit-config --force \

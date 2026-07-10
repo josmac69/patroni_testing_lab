@@ -11,7 +11,11 @@ experiment matrix.
 
     make up          # build, start, wait for convergence
     make status      # patronictl list
-    open http://localhost:3000   # Grafana, dashboard "Patroni Lab Overview"
+
+Service access:
+* **Grafana**: http://localhost:3000 (dashboard 'Patroni Lab Overview')
+* **Prometheus**: http://localhost:9090
+* **HAProxy**: http://localhost:7000
 
 ## Learning path
 
