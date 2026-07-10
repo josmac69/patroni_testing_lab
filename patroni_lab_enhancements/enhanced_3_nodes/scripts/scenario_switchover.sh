@@ -11,10 +11,11 @@ source scripts/lib.sh
 banner "state before switchover"
 cluster_list
 
-leader=$(current_leader)
+leader=$(current_leader) || { err "No leader found to switchover from"; exit 1; }
 banner "switching over away from $leader"
 patronictl switchover --leader "$leader" --force
 
 sleep 5
 banner "state after switchover"
 cluster_list
+success "Planned switchover completed successfully!"

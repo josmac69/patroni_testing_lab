@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib.sh
 
-leader=$(current_leader) || { echo "no leader found"; exit 1; }
+leader=$(current_leader) || { err "No leader found"; exit 1; }
 banner "current leader is $leader - state before the crash"
 cluster_list
 
@@ -25,12 +25,14 @@ banner "waiting for a new leader (expected within ttl + loop_wait, watch Grafana
 new_leader=""
 for i in $(seq 1 60); do
     if new_leader=$(current_leader) && [[ "$new_leader" != "$leader" ]]; then
+        success "New leader elected: $new_leader!"
         break
     fi
+    info "Waiting for election... (elapsed: ${i}s)"
     sleep 1
 done
 t1=$(date +%s)
-[[ -n "$new_leader" ]] || { echo "no new leader elected"; exit 1; }
+[[ -n "$new_leader" ]] || { err "No new leader elected"; exit 1; }
 
 banner "new leader: $new_leader after $((t1 - t0))s (REST-level detection)"
 cluster_list
@@ -40,5 +42,5 @@ docker compose start "$leader"
 sleep 15
 cluster_list
 echo
-echo "Check the logs of $leader for 'pg_rewind' or a fresh basebackup:"
-echo "  docker compose logs $leader | grep -iE 'rewind|basebackup' | tail"
+info "Check the logs of $leader for 'pg_rewind' or a fresh basebackup:"
+info "  docker compose logs $leader | grep -iE 'rewind|basebackup' | tail"

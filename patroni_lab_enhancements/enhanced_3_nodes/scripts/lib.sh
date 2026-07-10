@@ -10,7 +10,7 @@ current_leader() {
     for node in "${PATRONI_NODES[@]}"; do
         code=$(timeout 3 docker compose exec -T "$node" \
             curl -s -o /dev/null -w '%{http_code}' http://localhost:8008/primary \
-            2>/dev/null || echo 000)
+            2>/dev/null < /dev/null || echo 000)
         if [[ "$code" == "200" ]]; then
             echo "$node"
             return 0
@@ -26,7 +26,7 @@ patronictl() {
     if [[ -z "$running_node" ]]; then
         running_node="patroni1"
     fi
-    docker compose exec -T "$running_node" patronictl -c /tmp/patroni.yml "$@"
+    docker compose exec -T "$running_node" patronictl -c /tmp/patroni.yml "$@" < /dev/null
 }
 
 cluster_list() {
@@ -35,10 +35,36 @@ cluster_list() {
     if [[ -z "$running_node" ]]; then
         running_node="patroni1"
     fi
-    timeout 5 docker compose exec -T "$running_node" patronictl -c /tmp/patroni.yml list
+    timeout 5 docker compose exec -T "$running_node" patronictl -c /tmp/patroni.yml list < /dev/null
 }
 
+# ANSI Color Codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 banner() {
-    echo
-    echo "== $* =="
+    echo -e "\n${BOLD}${BLUE}========================================================================${NC}"
+    echo -e "${BOLD}${BLUE}🚀 $*${NC}"
+    echo -e "${BOLD}${BLUE}========================================================================${NC}"
+}
+
+info() {
+    echo -e "${CYAN}ℹ️  $*${NC}"
+}
+
+success() {
+    echo -e "${GREEN}✅ $*${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠️  $*${NC}"
+}
+
+err() {
+    echo -e "${RED}❌ $*${NC}"
 }

@@ -24,9 +24,9 @@ run_pass() {
     sleep 45   # > ttl, enough for demotion to happen if it is going to
 
     if leader=$(current_leader); then
-        echo "RESULT: leader $leader still serving writes (failsafe kept it up)"
+        success "RESULT: leader $leader still serving writes (failsafe kept it up)"
     else
-        echo "RESULT: no writable leader - primary demoted to read-only"
+        warn "RESULT: no writable leader - primary demoted to read-only"
     fi
 
     banner "recovering etcd"

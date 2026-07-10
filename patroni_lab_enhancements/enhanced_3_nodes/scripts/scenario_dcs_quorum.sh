@@ -27,26 +27,26 @@ case "${1:-}" in
     docker compose stop etcd3
     sleep 12
     cluster_list
-    echo "Writes still work: psql -h localhost -p 5000 -U postgres -c 'select 1'"
+    success "Writes still work: psql -h localhost -p 5000 -U postgres -c 'select 1'"
     ;;
   lost)
     banner "stopping etcd2 and etcd3 (2 of 3) - quorum LOST"
-    echo "Current failsafe_mode setting:"
+    info "Current failsafe_mode setting:"
     patronictl show-config \
-      | grep -i failsafe || echo "  failsafe_mode: not set (defaults to false)"
+      | grep -i failsafe || info "  failsafe_mode: not set (defaults to false)"
     docker compose stop etcd2 etcd3
     banner "watching for up to 60s - with failsafe off, expect demotion within ttl"
     for i in $(seq 1 12); do
         sleep 5
         if leader=$(current_leader); then
-            echo "t+$((i*5))s: leader still $leader (failsafe active?)"
+            info "t+$((i*5))s: leader still $leader (failsafe active?)"
         else
-            echo "t+$((i*5))s: NO leader answering /primary - primary demoted, cluster read-only"
+            warn "t+$((i*5))s: NO leader answering /primary - primary demoted, cluster read-only"
         fi
     done
     echo
-    echo "Verify read-only:  psql -h localhost -p 5000 ... -> connection refused/failed"
-    echo "Reads still fine:  psql -h localhost -p 5001 -U postgres -c 'select 1'"
+    info "Verify read-only:  psql -h localhost -p 5000 ... -> connection refused/failed"
+    info "Reads still fine:  psql -h localhost -p 5001 -U postgres -c 'select 1'"
     ;;
   recover)
     banner "restarting all etcd members"

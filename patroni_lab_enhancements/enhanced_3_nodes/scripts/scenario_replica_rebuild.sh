@@ -9,14 +9,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib.sh
 
-leader=$(current_leader) || { echo "no leader"; exit 1; }
+leader=$(current_leader) || { err "No leader found"; exit 1; }
+info "Current leader is $leader"
 for node in "${PATRONI_NODES[@]}"; do
     [[ "$node" != "$leader" ]] && { victim=$node; break; }
 done
+info "Selected victim replica for failure simulation: $victim"
 
 banner "victim replica: $victim - deleting pg_control to break it"
 docker compose exec -T "$victim" bash -c \
-    'rm -f /var/lib/postgresql/data/pgdata/global/pg_control'
+    'rm -f /var/lib/postgresql/data/pgdata/global/pg_control' < /dev/null
 docker compose restart "$victim"
 sleep 10
 cluster_list

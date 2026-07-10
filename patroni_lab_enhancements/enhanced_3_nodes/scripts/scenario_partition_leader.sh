@@ -18,7 +18,7 @@ STATE_FILE=/tmp/patroni_lab_partitioned_node
 
 case "${1:-}" in
   partition)
-    leader=$(current_leader) || { echo "no leader"; exit 1; }
+    leader=$(current_leader) || { err "No leader found"; exit 1; }
     banner "disconnecting $leader from patroni_labnet"
     echo "$leader" > "$STATE_FILE"
     docker network disconnect patroni_labnet "$leader"
@@ -26,28 +26,28 @@ case "${1:-}" in
     for i in $(seq 1 15); do
         sleep 4
         if new=$(current_leader) && [[ "$new" != "$leader" ]]; then
-            echo "t+$((i*4))s: new leader is $new"
+            success "t+$((i*4))s: new leader is $new"
             cluster_list
             exit 0
         fi
-        echo "t+$((i*4))s: no new leader yet"
+        info "t+$((i*4))s: no new leader yet"
     done
-    echo "no promotion observed - inspect logs" >&2
+    err "no promotion observed - inspect logs" >&2
     exit 1
     ;;
   heal)
-    node=$(cat "$STATE_FILE" 2>/dev/null) || { echo "nothing partitioned"; exit 1; }
+    node=$(cat "$STATE_FILE" 2>/dev/null) || { err "nothing partitioned"; exit 1; }
     banner "reconnecting $node"
     docker network connect patroni_labnet "$node"
     sleep 20
     cluster_list
     echo
-    echo "Inspect the healing path:"
-    echo "  docker compose logs $node | grep -iE 'rewind|demot|follow' | tail -20"
+    info "Inspect the healing path:"
+    info "  docker compose logs $node | grep -iE 'rewind|demot|follow' | tail -20"
     rm -f "$STATE_FILE"
     ;;
   *)
-    echo "usage: $0 {partition|heal}" >&2
+    err "usage: $0 {partition|heal}" >&2
     exit 2
     ;;
 esac

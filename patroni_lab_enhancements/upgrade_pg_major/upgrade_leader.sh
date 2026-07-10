@@ -16,7 +16,7 @@ LEADER=${LEADER:?set LEADER, e.g. LEADER=patroni1}
 DATA_OLD=/var/lib/postgresql/data/pgdata
 DATA_NEW=/var/lib/postgresql/data/pgdata_${NEW}
 
-run() { docker compose exec -T "$LEADER" bash -c "$*"; }
+run() { docker compose exec -T "$LEADER" bash -c "$*" < /dev/null; }
 
 echo "== pausing Patroni =="
 run "patronictl -c /tmp/patroni.yml pause"
@@ -25,7 +25,7 @@ echo "== stopping PostgreSQL on standbys, then leader =="
 for n in patroni1 patroni2 patroni3; do
     [[ "$n" == "$LEADER" ]] && continue
     docker compose exec -T "$n" bash -c \
-      "pg_ctl stop -D $DATA_OLD -m fast" || true
+      "pg_ctl stop -D $DATA_OLD -m fast" < /dev/null || true
 done
 run "pg_ctl stop -D $DATA_OLD -m fast"
 
