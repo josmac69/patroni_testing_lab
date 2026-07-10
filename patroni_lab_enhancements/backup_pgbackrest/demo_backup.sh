@@ -20,7 +20,7 @@ if ! docker compose -f "$COMPOSE_FILE" ps | grep -q "patroni"; then
 fi
 
 show_header() {
-    clear
+    clear || true
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
     echo -e "${BLUE}${BOLD}                    PATRONI PGBACKREST DEMO UTILITY                    ${NC}"
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
@@ -44,9 +44,9 @@ configure_archiving() {
     pause_for_user
 
     echo -e "\n${CYAN}Applying configuration...${NC}"
-    docker compose -f "$COMPOSE_FILE" exec patroni1 patronictl -c /tmp/patroni.yml edit-config --force \
+    docker compose -f "$COMPOSE_FILE" exec -T patroni1 patronictl -c /tmp/patroni.yml edit-config --force \
       -s "postgresql.parameters.archive_mode=on" \
-      -s "postgresql.parameters.archive_command=pgbackrest --stanza=lab archive-push %p"
+      -s "postgresql.parameters.archive_command=pgbackrest --stanza=lab archive-push %p" < /dev/null
     
     echo -e "\n${GREEN}Configuration updated successfully.${NC}"
     read -p "Press [Enter] to return to menu..."
@@ -65,7 +65,10 @@ restart_cluster() {
     echo -e "\n${CYAN}Restarting Patroni containers...${NC}"
     docker compose -f "$COMPOSE_FILE" restart patroni1 patroni2 patroni3
     
-    echo -e "\n${GREEN}Containers restarted successfully.${NC}"
+    echo -e "\n${CYAN}Waiting for cluster to recover and elect leader...${NC}"
+    (cd ../enhanced_3_nodes && ./scripts/wait_for_cluster.sh)
+    
+    echo -e "\n${GREEN}Containers restarted and cluster is ready.${NC}"
     read -p "Press [Enter] to return to menu..."
 }
 
@@ -82,13 +85,13 @@ create_stanza_backup() {
     pause_for_user
 
     echo -e "\n${CYAN}Creating pgBackRest stanza...${NC}"
-    docker compose -f "$COMPOSE_FILE" exec patroni1 pgbackrest --stanza=lab stanza-create
+    docker compose -f "$COMPOSE_FILE" exec -T patroni1 pgbackrest --stanza=lab stanza-create < /dev/null
     
     echo -e "\n${CYAN}Taking full backup (may take a few seconds)...${NC}"
-    docker compose -f "$COMPOSE_FILE" exec patroni1 pgbackrest --stanza=lab --type=full backup
+    docker compose -f "$COMPOSE_FILE" exec -T patroni1 pgbackrest --stanza=lab --type=full backup < /dev/null
     
     echo -e "\n${CYAN}Fetching backup info...${NC}"
-    docker compose -f "$COMPOSE_FILE" exec patroni1 pgbackrest --stanza=lab info
+    docker compose -f "$COMPOSE_FILE" exec -T patroni1 pgbackrest --stanza=lab info < /dev/null
     
     echo -e "\n${GREEN}Stanza and backup created successfully.${NC}"
     read -p "Press [Enter] to return to menu..."

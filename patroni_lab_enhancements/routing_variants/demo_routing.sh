@@ -20,7 +20,7 @@ if ! docker compose -f "$COMPOSE_FILE" ps | grep -q "patroni"; then
 fi
 
 show_header() {
-    clear
+    clear || true
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
     echo -e "${BLUE}${BOLD}                     PATRONI ROUTING DEMO UTILITY                      ${NC}"
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
@@ -43,7 +43,7 @@ test_libpq_multihost() {
     pause_for_user
 
     echo -e "\n${CYAN}Running the libpq multi-host command...${NC}"
-    docker compose -f "$COMPOSE_FILE" exec client psql "host=patroni1,patroni2,patroni3 port=5432,5432,5432 target_session_attrs=read-write user=postgres dbname=postgres" -c "SELECT pg_is_in_recovery() AS is_replica, inet_server_addr() AS host_ip;"
+    docker compose -f "$COMPOSE_FILE" exec -T client psql "host=patroni1,patroni2,patroni3 port=5432,5432,5432 target_session_attrs=read-write user=postgres dbname=postgres" -c "SELECT pg_is_in_recovery() AS is_replica, inet_server_addr() AS host_ip;" < /dev/null
     
     echo -e "\n${GREEN}Command executed successfully. Notice that target_session_attrs routed you directly to the writable primary node.${NC}"
     read -p "Press [Enter] to return to menu..."

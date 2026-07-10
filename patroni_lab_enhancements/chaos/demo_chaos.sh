@@ -20,7 +20,7 @@ if ! docker compose -f "$COMPOSE_FILE" ps | grep -q "patroni"; then
 fi
 
 show_header() {
-    clear
+    clear || true
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
     echo -e "${BLUE}${BOLD}                      PATRONI CHAOS DEMO UTILITY                       ${NC}"
     echo -e "${BLUE}${BOLD}========================================================================${NC}"
