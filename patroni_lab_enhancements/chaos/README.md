@@ -10,6 +10,13 @@ per-connection faults.
 All scripts operate on the live containers of the enhanced lab; start it
 first (`cd ../enhanced_3_nodes && make up`).
 
+## 🚀 Quick Interactive Demo
+
+You can run the interactive demo script to execute the chaos experiments:
+```bash
+./demo_chaos.sh
+```
+
 ## Why this matters for Patroni specifically
 
 Patroni's correctness depends on *relative timing*: `ttl`, `loop_wait`,

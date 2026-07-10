@@ -5,6 +5,13 @@ patterns; each moves the failover-detection latency and the
 single-point-of-failure question to a different place. This module provides
 a PgBouncer variant to run, and comparison notes for the other two.
 
+## 🚀 Quick Interactive Demo
+
+You can run the interactive demo script to test connection routing:
+```bash
+./demo_routing.sh
+```
+
 ## The comparison that matters (fill with measured values)
 
 | Pattern | RTO contribution | SPOF | Read/write split | Notes |

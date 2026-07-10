@@ -41,6 +41,11 @@ make up
 make status
 ```
 
+To make testing easier without copy-pasting individual commands, you can run the interactive demo scripts in each subdirectory:
+* **Chaos:** `./chaos/demo_chaos.sh`
+* **pgBackRest:** `./backup_pgbackrest/demo_backup.sh`
+* **Routing:** `./routing_variants/demo_routing.sh`
+
 ## Version notes
 
 * Patroni pinned to 4.1.4; PostgreSQL major selectable via `.env`

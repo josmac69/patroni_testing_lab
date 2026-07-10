@@ -5,6 +5,13 @@ gains what Patroni alone does not provide: real backups, point-in-time
 recovery, and replica creation **from the repository instead of from the
 primary**.
 
+## 🚀 Quick Interactive Demo
+
+You can run the interactive demo script to set up, backup, and restore:
+```bash
+./demo_backup.sh
+```
+
 ## What Patroni does and does not do
 
 Patroni is an HA orchestrator, not a backup tool. Replication protects
