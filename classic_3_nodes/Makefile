@@ -17,6 +17,7 @@ help:
 	@echo "  make client-logs                 - Follow logs of the background ingestion client"
 	@echo "  make ingest-docker               - Run ingestion client interactively in a temp Docker container"
 	@echo "  make ingest-local                - Run ingestion client locally on the host (sets up venv)"
+	@echo "  make measure-loss-rate           - Run rate-limited RPO/RTO harness (e.g. RATE=60 DURATION=120)"
 	@echo "  make failover                    - Run manual patronictl failover wizard"
 	@echo "  make write-test [NUM=N]          - Run test SQL insert via HAProxy write port 5000 (default: NUM=1)"
 	@echo "  make read-test                   - Run test SQL select via HAProxy read port 5001"
@@ -95,6 +96,9 @@ ingest-docker:
 
 ingest-local:
 	./scripts/run_ingestion.sh local
+
+measure-loss-rate:
+	docker compose exec client python3 /scripts/rpo_rto_rate_harness.py --rate $(or $(RATE),60) --duration $(or $(DURATION),120)
 
 bootstrap:
 	./scripts/bootstrap.sh

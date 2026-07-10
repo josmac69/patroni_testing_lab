@@ -24,6 +24,7 @@ help:
 	@echo "  make write-test-standby [NUM=N]  - Try inserting N records via Bonn HAProxy (port 6000) (should fail)"
 	@echo "  make read-test-primary           - Fetch latest records from Berlin HAProxy (port 5001)"
 	@echo "  make read-test-standby           - Fetch latest records from Bonn HAProxy (port 6001)"
+	@echo "  make measure-loss-rate           - Run rate-limited RPO/RTO harness (e.g. RATE=60 DURATION=120)"
 	@echo ""
 	@echo "Triage & Maintenance Commands:"
 	@echo "  make triage [CLUSTER=berlin|bonn] - Run deep triage audit on berlin or bonn cluster leader (default: CLUSTER=berlin)"
@@ -299,6 +300,9 @@ reinit-node:
 	fi; \
 	echo "Reinitializing $(NODE) via $$RUNNING..."; \
 	docker compose exec $$RUNNING patronictl -c /etc/patroni/patroni.yml reinit $$CLUSTER_NAME $(NODE)
+
+measure-loss-rate:
+	docker compose exec berlin-client python3 /scripts/rpo_rto_rate_harness.py --rate $(or $(RATE),60) --duration $(or $(DURATION),120)
 
 bash:
 	docker compose exec -u root -it $(NODE) bash

@@ -35,6 +35,8 @@ A `Makefile` is provided to simplify managing, testing, and inspecting the clust
 *   **`make failover`**: Run the manual Patroni failover wizard.
 *   **`make write-test [NUM=N]`**: Run a test INSERT statement via the HAProxy write-only port `5000` (default: `NUM=1`).
 *   **`make read-test`**: Run a test SELECT statement via the HAProxy read-only port `5001`.
+*   **`make measure-loss-rate [RATE=N] [DURATION=S]`**: Run a rate-limited RPO/RTO measurement harness on the client (default: `RATE=60` inserts/min, `DURATION=120`s).
+
 *   **`make bash`**: Open a root bash shell inside the selected container (default: `NODE=patroni1`).
 *   **`make psql`**: Open a `psql` shell inside the selected container (default: `NODE=patroni1`).
 
@@ -353,5 +355,27 @@ make psql
 # Connect to a specific node (e.g. patroni3)
 make psql NODE=patroni3
 ```
+
+---
+
+## Measuring RPO/RTO Data Loss (Continuous Inserts)
+
+To measure actual data loss (Recovery Point Objective - RPO) and outage duration (Recovery Time Objective - RTO) during any failure scenario:
+
+1. **Start the Continuous Insert Harness** in a dedicated terminal window:
+   ```bash
+   # Run with 120 inserts per minute (2 inserts per second) for 60 seconds
+   make measure-loss-rate RATE=120 DURATION=60
+   ```
+2. **Trigger the failure scenario** in a second terminal window while the inserts are running:
+   ```bash
+   # E.g., trigger a leader failure simulation:
+   make simulate-leader-failure
+   # Or disconnect the leader node from the network:
+   make simulate-network-partition
+   ```
+3. **Inspect the Harness Terminal Output**:
+   The harness will log each successful insert, output warnings when writes fail during the outage, report the RTO (how long the database was unavailable), and count any RPO violations (acknowledged writes that were lost during the failover/crash).
+
 
 

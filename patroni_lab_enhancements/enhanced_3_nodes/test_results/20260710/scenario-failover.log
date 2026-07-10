@@ -1,0 +1,69 @@
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ make scenario-failover 
+./scripts/scenario_failover.sh
+
+========================================================================
+🚀 current leader is patroni1 - state before the crash
+========================================================================
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Leader  | running   |  8 |             |     |            |     |
+| patroni2 | patroni2 | Replica | streaming |  8 |   0/44BC778 |   0 |  0/44BC778 |   0 |
+| patroni3 | patroni3 | Replica | streaming |  8 |   0/44BC778 |   0 |  0/44BC778 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+========================================================================
+🚀 killing patroni1 with SIGKILL (no clean shutdown, no final checkpoint)
+========================================================================
+[+] kill 1/1
+ ✔ Container patroni1 Killed                                                                                                                                                            0.3s
+
+========================================================================
+🚀 waiting for a new leader (expected within ttl + loop_wait, watch Grafana)
+========================================================================
+ℹ️  Waiting for election... (elapsed: 1s)
+ℹ️  Waiting for election... (elapsed: 2s)
+ℹ️  Waiting for election... (elapsed: 3s)
+ℹ️  Waiting for election... (elapsed: 4s)
+ℹ️  Waiting for election... (elapsed: 5s)
+ℹ️  Waiting for election... (elapsed: 6s)
+ℹ️  Waiting for election... (elapsed: 7s)
+ℹ️  Waiting for election... (elapsed: 8s)
+ℹ️  Waiting for election... (elapsed: 9s)
+ℹ️  Waiting for election... (elapsed: 10s)
+ℹ️  Waiting for election... (elapsed: 11s)
+ℹ️  Waiting for election... (elapsed: 12s)
+ℹ️  Waiting for election... (elapsed: 13s)
+ℹ️  Waiting for election... (elapsed: 14s)
+ℹ️  Waiting for election... (elapsed: 15s)
+ℹ️  Waiting for election... (elapsed: 16s)
+ℹ️  Waiting for election... (elapsed: 17s)
+ℹ️  Waiting for election... (elapsed: 18s)
+✅ New leader elected: patroni2!
+
+========================================================================
+🚀 new leader: patroni2 after 26s (REST-level detection)
+========================================================================
++ Cluster: lab (7660818476642590753) -----+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State   | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+---------+----+-------------+-----+------------+-----+
+| patroni2 | patroni2 | Leader  | running |  9 |             |     |            |     |
+| patroni3 | patroni3 | Replica | running |  8 |   0/44C0450 |   0 |  0/44C0450 |   0 |
++----------+----------+---------+---------+----+-------------+-----+------------+-----+
+
+========================================================================
+🚀 restarting the old leader patroni1 - watch it rejoin as a replica
+========================================================================
+[+] start 1/1
+ ✔ Container patroni1 Started                                                                                                                                                           0.2s
++ Cluster: lab (7660818476642590753) -------+----+-------------+-----+------------+-----+
+| Member   | Host     | Role    | State     | TL | Receive LSN | Lag | Replay LSN | Lag |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+| patroni1 | patroni1 | Replica | streaming |  9 |   0/44CE420 |   0 |  0/44CE420 |   0 |
+| patroni2 | patroni2 | Leader  | running   |  9 |             |     |            |     |
+| patroni3 | patroni3 | Replica | streaming |  9 |   0/44CE420 |   0 |  0/44CE420 |   0 |
++----------+----------+---------+-----------+----+-------------+-----+------------+-----+
+
+ℹ️  Check the logs of patroni1 for 'pg_rewind' or a fresh basebackup:
+ℹ️    docker compose logs patroni1 | grep -iE 'rewind|basebackup' | tail
+test@test-pc-nitro5:~/github.com/josmac69/patroni_testing_lab/patroni_lab_enhancements/enhanced_3_nodes$ 

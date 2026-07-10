@@ -96,6 +96,12 @@ make status
   ```bash
   make write-test-standby
   ```
+- **Measure Data Loss / Outages (RATE/DURATION)**:
+  ```bash
+  make measure-loss-rate
+  make measure-loss-rate RATE=120 DURATION=60
+  ```
+
 
 ### 4. Running Triage Audits
 Analyze the health of either cluster using the container-aware triage script (specify `CLUSTER`):
@@ -133,3 +139,25 @@ When `make promote-standby` is executed:
 4. It changes its timeline from the primary timeline to a new, diverged timeline.
 5. The replicas `bonn-patroni2` and `bonn-patroni3` follow the timeline transition and continue streaming from the newly promoted leader.
 6. The cluster is now fully writable (verifiable by running `make write-test-standby`).
+
+---
+
+## Measuring RPO/RTO Data Loss (Continuous Inserts)
+
+To measure actual data loss (Recovery Point Objective - RPO) and outage duration (Recovery Time Objective - RTO) during standby promotion or failovers:
+
+1. **Start the Continuous Insert Harness** in a dedicated terminal window:
+   ```bash
+   # Run with 120 inserts per minute (2 inserts per second) for 60 seconds
+   make measure-loss-rate RATE=120 DURATION=60
+   ```
+2. **Trigger the failure scenario or promotion** in a second terminal window while the inserts are running:
+   ```bash
+   # E.g., promote the standby cluster:
+   make promote-standby
+   # Or simulate primary leader failure:
+   make simulate-berlin-leader-failure
+   ```
+3. **Inspect the Harness Terminal Output**:
+   The harness will log each successful insert, output warnings when writes fail during the outage, report the RTO (how long the database was unavailable), and count any RPO violations (acknowledged writes that were lost during the failover/crash).
+

@@ -105,6 +105,9 @@ scenario-reinit-replica: ## Corrupt/remove a replica and reinitialize it
 measure-rpo-rto: ## Run the RPO/RTO harness for 120s; trigger a failure meanwhile
 	$(COMPOSE) exec client python rpo_rto_harness.py --duration 120
 
+measure-loss-rate: ## Run rate-limited RPO/RTO harness (e.g. make measure-loss-rate RATE=60 DURATION=120)
+	$(COMPOSE) exec client python rpo_rto_rate_harness.py --rate $(or $(RATE),60) --duration $(or $(DURATION),120)
+
 pause: ## Patroni maintenance pause (Patroni stops managing PostgreSQL)
 	$(PATRONICTL) pause
 

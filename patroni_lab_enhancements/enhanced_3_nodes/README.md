@@ -38,7 +38,28 @@ Service access:
 | `make scenario-partition-leader` | split-brain drill: isolated leader self-demotes |
 | `make scenario-reinit-replica` | broken replica, `patronictl reinit` |
 | `make pause` / `make resume` | maintenance mode |
-| `make measure-rpo-rto` | quantitative RPO/RTO under any of the above |
+| `make measure-rpo-rto` | quantitative RPO/RTO under any of the above (default fast rate) |
+| `make measure-loss-rate RATE=N` | quantitative RPO/RTO under any of the above with a set rate (inserts per minute, default 60) |
+
+
+## Measuring RPO/RTO Data Loss (Continuous Inserts)
+
+To measure actual data loss (Recovery Point Objective - RPO) and outage duration (Recovery Time Objective - RTO) during any failure scenario:
+
+1. **Start the Continuous Insert Harness** in a dedicated terminal window:
+   ```bash
+   # Run with 120 inserts per minute (2 inserts per second) for 60 seconds
+   make measure-loss-rate RATE=120 DURATION=60
+   ```
+2. **Trigger the failure scenario** in a second terminal window while the inserts are running:
+   ```bash
+   # E.g., trigger a planned switchover:
+   make scenario-switchover
+   # Or trigger a hard leader crash:
+   make scenario-failover
+   ```
+3. **Inspect the Harness Terminal Output**:
+   The harness will log each successful insert, output warnings when writes fail during the outage, report the RTO (how long the database was unavailable), and count any RPO violations (acknowledged writes that were lost during the failover/crash).
 
 ## Version pinning
 
